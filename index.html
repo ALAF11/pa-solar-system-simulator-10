@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>3D PA Solar System Simulator</title>
-
+    <meta charset="UTF-8">
+    <title>🌌 PA Solar System Simulator</title>
     <style>
         body {
             margin: 0;
@@ -12,75 +12,107 @@
             color: white;
         }
 
+        .container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
         #gl-canvas {
             border: 2px solid #333;
             display: block;
-            margin: 0 auto;
             cursor: crosshair;
             background-color: #000011;
         }
-    </style>
 
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 300px;
+        }
+
+        .control-group {
+            background-color: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .control-group h3 {
+            margin-top: 0;
+            color: #4CAF50;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        select, input, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #333;
+            color: white;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
 </head>
 <body>
-<canvas height="800" id="gl-canvas" width="800"></canvas>
+<h1 style="text-align: center; color: #4CAF50;">🌌 PA Solar System Simulator</h1>
 
-<div style="max-width: 800px; margin: 20px auto; display: flex; gap: 20px;">
+<div class="container">
+    <canvas id="gl-canvas" width="800" height="800"></canvas>
 
-    <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1;">
-        <h3 style="margin-top: 0; color: #4CAF50;">Controls</h3>
+    <div class="controls-panel">
 
-        <label>Rotation Speed:</label>
-        <input type="range" id="rotation-speed" min="0" max="180" value="30" step="1">
-        <span id="speed-display">30°/s</span>
-
-        <br><br>
-        <button id="pause-btn">Pause</button>
-        <button id="reset-btn">Reset</button>
-    </div>
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <title>3D PA Solar System Simulator</title>
-
-        <style>
-            body {
-                margin: 0;
-                padding: 20px;
-                font-family: Arial, sans-serif;
-                background-color: #1a1a1a;
-                color: white;
-            }
-
-            #gl-canvas {
-                border: 2px solid #333;
-                display: block;
-                margin: 0 auto;
-                cursor: crosshair;
-                background-color: #000011;
-            }
-        </style>
-
-    </head>
-    <body>
-    <canvas height="800" id="gl-canvas" width="800"></canvas>
-
-    <div style="max-width: 800px; margin: 20px auto; display: flex; gap: 20px;">
-
-        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1;">
-            <h3 style="margin-top: 0; color: #4CAF50;">Controls</h3>
+        <div class="control-group">
+            <h3>🎮 Controles de Simulação</h3>
 
             <label>Rotation Speed:</label>
-            <input type="range" id="rotation-speed" min="0" max="180" value="30" step="1">
-            <span id="speed-display">30°/s</span>
+
+            <input type="range" id="rotation-speed" min="0" max="0.1" value="0.02" step="0.001">
+            <span id="speed-display">0.02</span>
 
             <br><br>
             <button id="pause-btn">Pause</button>
             <button id="reset-btn">Reset</button>
         </div>
 
-        <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1;">
-            <h3 style="margin-top: 0; color: #4CAF50;">Info</h3>
+        <
+        <div class="control-group">
+            <h3>📊 Info</h3>
             <div>FPS: <span id="fps-counter">--</span></div>
             <div>FPS Value: <span id="fps-display">0</span></div>
             <div>Objects: <span id="object-count">1</span></div>
@@ -99,35 +131,27 @@
                 Mouse: Clique para olhar em volta
             </div>
         </div>
-    </div>
 
 
-    <script src="Js/three.js"></script>
-    <script src="Js/app.js"></script>
-    </body>
-    </html>
-    <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1;">
-        <h3 style="margin-top: 0; color: #4CAF50;">Info</h3>
-        <div>FPS: <span id="fps-counter">--</span></div>
-        <div>FPS Value: <span id="fps-display">0</span></div>
-        <div>Objects: <span id="object-count">1</span></div>
-        <div>Scale: <span id="scale-display">1.0</span></div>
+        <div class="control-group">
+            <h3>🪐 Gestão de Objetos</h3>
 
-        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
-            <div>Camera X: <span id="camera-x">0</span></div>
-            <div>Camera Y: <span id="camera-y">0</span></div>
-            <div>Camera Z: <span id="camera-z">0</span></div>
-        </div>
+            <label for="object-list">Objetos na Cena:</label>
+            <select id="object-list">
+                <option value="">Selecionar objeto...</option>
+            </select>
 
-        <div style="margin-top: 10px; font-size: 12px; color: #999;">
-            <strong>Navegacao:</strong><br>
-            WASD: Movimento horizontal<br>
-            Q/R: Movimento vertical<br>
-            Mouse: Clique para olhar em volta
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button id="add-planet">➕ Adicionar Planeta</button>
+                <button id="remove-object" style="background-color: #f44336;">🗑️ Remover</button>
+            </div>
+
+            <p style="font-size: 12px; color: #999; margin: 10px 0;">
+                <em>Funcionalidade será implementada na próxima fase</em>
+            </p>
         </div>
     </div>
 </div>
-
 
 <script src="Js/three.js"></script>
 <script src="Js/app.js"></script>
