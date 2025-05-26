@@ -11,7 +11,26 @@ let minScale = 0.3; // minimum size
 let maxScale = 2.5; // maximum size
 let mouseX, mouseY; // mouse position
 
+// Sets listeners for the mouse position
+document.getElementById("gl-canvas").onmousemove = function (event) {
+    mouseX = (event.x / canvas.width) * cameraPositionZ - cameraPositionZ / 2;
+    mouseY = -(event.y / canvas.height) * cameraPositionZ + cameraPositionZ / 2;
+}
 
+// Sets listeners for the mouse wheel
+document.getElementById("gl-canvas").onwheel = function (event) {
+    if (event.deltaY > 0) {
+        currentScale += scaleFactor;
+        if (currentScale > maxScale) {
+            currentScale = maxScale;
+        }
+    } else {
+        currentScale -= scaleFactor;
+        if (currentScale < minScale) {
+            currentScale = minScale;
+        }
+    }
+}
 
 //Initializes the WebGL application
 const init = () => {
@@ -29,17 +48,35 @@ const init = () => {
     // Scene defines properties like the background, and defines the objects to be rendered
     scene = new THREE.Scene();
 
+    makeSphere();
+
     // Create a camera
     const fov = 75;
     const  near = 0.1;
-    const far = 5;
+    const far = 1000;
 
     const aspect = canvas.width / canvas.height;
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
     camera.position.z = cameraPositionZ;
 
     // Render
-    renderer.render(scene, camera);
+    render();
+}
+
+//Draws a sphere.
+const makeSphere = () => {
+    // Create a sphere
+    const SphereRadius = 1;
+    //
+    const geometry = new THREE.SphereGeometry(SphereRadius);
+    //
+    const materials = new THREE.MeshBasicMaterial({color: 0xffffff});
+    //
+    const sphere = new THREE.Mesh(geometry, materials);
+    //
+    scene.add(sphere);
+    //
+    currentObject = sphere;
 }
 
 
@@ -55,7 +92,7 @@ const render = () => {
     // Apply scaling
     currentObject.scale.set(currentScale, currentScale, currentScale);
 
-    // TODO: Draw the scene
+    // Draw the scene
     renderer.render(scene, camera);
 
     // Make the new frame

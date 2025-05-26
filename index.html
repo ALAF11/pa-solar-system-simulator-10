@@ -25,6 +25,27 @@
 <body>
 <canvas height="800" id="gl-canvas" width="800"></canvas>
 
+<div style="max-width: 800px; margin: 20px auto; display: flex; gap: 20px;">
+
+    <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1;">
+        <h3 style="margin-top: 0; color: #4CAF50;">Controls</h3>
+
+        <label>Rotation Speed:</label>
+        <input type="range" id="rotation-speed" min="0" max="0.1" value="0.01" step="0.001">
+        <span id="speed-display">0.01</span>
+
+        <br><br>
+        <button id="pause-btn">Pause</button>
+        <button id="reset-btn">Reset</button>
+    </div>
+
+    <div style="background-color: #2a2a2a; padding: 20px; border-radius: 8px; flex: 1;">
+        <h3 style="margin-top: 0; color: #4CAF50;">Info</h3>
+        <div>FPS: <span id="fps-counter">--</span></div>
+        <div>Objects: <span id="object-count">1</span></div>
+    </div>
+</div>
+
 
 <script src="Js/three.js"></script>
 <script src="Js/app.js"></script>
