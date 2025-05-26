@@ -15,6 +15,19 @@ let isPaused = false;
 let frameCount = 0;
 let lastFPSUpdate = 0;
 let animationId;
+let cameraControls = {
+    moveForward: false,
+    moveBackward: false,
+    moveLeft: false,
+    moveRight: false,
+    moveUp: false,
+    moveDown: false
+};
+let cameraSpeed = 5;
+let isMouseLocked = false;
+let cameraRotation = { x: 0, y: 0 };
+const mouseSensitivity = 0.002;
+let lastTime = 0;
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -63,6 +76,9 @@ const init = () => {
     const aspect = canvas.width / canvas.height;
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
     camera.position.z = cameraPositionZ;
+
+    setupKeyboardControls();
+    setupMouseControls();
 
     // Render
     render();
@@ -132,8 +148,10 @@ const setupUIControls = () => {
 
 const updateInfoDisplay = () => {
     document.getElementById('scale-display').textContent = currentScale.toFixed(1);
-
     document.getElementById('object-count').textContent = scene.children.length;
+    document.getElementById('camera-x').textContent = camera.position.x.toFixed(1);
+    document.getElementById('camera-y').textContent = camera.position.y.toFixed(1);
+    document.getElementById('camera-z').textContent = camera.position.z.toFixed(1);
 };
 
 const updateFPS = () => {
@@ -149,20 +167,123 @@ const updateFPS = () => {
     }
 };
 
+const setupKeyboardControls = () => {
+    document.addEventListener('keydown', (event) => {
+        switch(event.code) {
+            case 'KeyW':
+                cameraControls.moveForward = true;
+                event.preventDefault();
+                break;
+            case 'KeyS':
+                cameraControls.moveBackward = true;
+                event.preventDefault();
+                break;
+            case 'KeyA':
+                cameraControls.moveLeft = true;
+                event.preventDefault();
+                break;
+            case 'KeyD':
+                cameraControls.moveRight = true;
+                event.preventDefault();
+                break;
+            case 'KeyQ':
+                cameraControls.moveUp = true;
+                event.preventDefault();
+                break;
+            case 'KeyR':
+                cameraControls.moveDown = true;
+                event.preventDefault();
+                break;
+        }
+    });
+
+    document.addEventListener('keyup', (event) => {
+        switch(event.code) {
+            case 'KeyW':
+                cameraControls.moveForward = false;
+                break;
+            case 'KeyS':
+                cameraControls.moveBackward = false;
+                break;
+            case 'KeyA':
+                cameraControls.moveLeft = false;
+                break;
+            case 'KeyD':
+                cameraControls.moveRight = false;
+                break;
+            case 'KeyQ':
+                cameraControls.moveUp = false;
+                break;
+            case 'KeyR':
+                cameraControls.moveDown = false;
+                break;
+        }
+    });
+};
+
+const updateCameraMovement = (deltaTime) => {
+    const moveDistance = cameraSpeed * deltaTime;
+
+    if (cameraControls.moveForward) {
+        camera.translateZ(-moveDistance);
+    }
+    if (cameraControls.moveBackward) {
+        camera.translateZ(moveDistance);
+    }
+    if (cameraControls.moveLeft) {
+        camera.translateX(-moveDistance);
+    }
+    if (cameraControls.moveRight) {
+        camera.translateX(moveDistance);
+    }
+    if (cameraControls.moveUp) {
+        camera.translateY(moveDistance);
+    }
+    if (cameraControls.moveDown) {
+        camera.translateY(-moveDistance);
+    }
+};
+
+const setupMouseControls = () => {
+    canvas.addEventListener('click', () => {
+        canvas.requestPointerLock();
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+        isMouseLocked = document.pointerLockElement === canvas;
+        console.log(isMouseLocked ? 'Mouse locked' : 'Mouse unlocked');
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        if (isMouseLocked) {
+            cameraRotation.y -= event.movementX * mouseSensitivity;
+            cameraRotation.x -= event.movementY * mouseSensitivity;
+
+            cameraRotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, cameraRotation.x));
+
+            camera.rotation.set(cameraRotation.x, cameraRotation.y, 0);
+        }
+    });
+};
+
 
 // The render loop.
-const render = () => {
-    if (isPaused) return;
+const render = (currentTime = 0) => {
+    const deltaTime = (currentTime - lastTime) / 1000;
+    lastTime = currentTime;
 
-    //  Apply translation
-    currentObject.position.set(mouseX, mouseY);
+    if (!isPaused) {
+        updateCameraMovement(deltaTime);
+        //  Apply translation
+        currentObject.position.set(mouseX, mouseY);
 
-    //  Apply rotation
-    currentObject.rotation.x += angle;
-    currentObject.rotation.y += angle;
+        //  Apply rotation
+        currentObject.rotation.x += angle;
+        currentObject.rotation.y += angle;
 
-    // Apply scaling
-    currentObject.scale.set(currentScale, currentScale, currentScale);
+        // Apply scaling
+        currentObject.scale.set(currentScale, currentScale, currentScale);
+    }
 
     updateInfoDisplay();
     updateFPS();
