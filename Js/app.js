@@ -180,7 +180,7 @@ const setupUIControls = () => {
 
     speedSlider.addEventListener('input', (e) => {
         simulationSpeed = parseFloat(e.target.value);
-        speedDisplay.textContent = angle.toFixed(3);
+        speedDisplay.textContent = `${simulationSpeed}°/s`;
     });
 
     const pauseBtn = document.getElementById('pause-btn');
