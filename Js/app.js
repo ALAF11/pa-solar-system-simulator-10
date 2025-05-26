@@ -4,12 +4,17 @@ window.onload = () => init();
 //Global variables
 let canvas, currentObject, renderer, scene, camera;
 const cameraPositionZ = 10;
-const angle = 0.02; // rotation in radians
+let angle = 0.02; // rotation in radians
 let currentScale = 1; // current scale
 let scaleFactor = 0.1; // scale increase/decrease factor
 let minScale = 0.3; // minimum size
 let maxScale = 2.5; // maximum size
-let mouseX, mouseY; // mouse position
+let mouseX = 0, mouseY = 0; // mouse position
+let animationSpeed = 0.01;
+let isPaused = false;
+let frameCount = 0;
+let lastFPSUpdate = 0;
+let animationId;
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -61,6 +66,8 @@ const init = () => {
 
     // Render
     render();
+    setupUIControls();
+
 }
 
 //Draws a sphere.
@@ -79,9 +86,74 @@ const makeSphere = () => {
     currentObject = sphere;
 }
 
+const setupUIControls = () => {
+
+    const speedSlider = document.getElementById('rotation-speed');
+    const speedDisplay = document.getElementById('speed-display');
+
+    speedSlider.addEventListener('input', (e) => {
+        angle = parseFloat(e.target.value);
+        speedDisplay.textContent = angle.toFixed(3);
+    });
+
+    const pauseBtn = document.getElementById('pause-btn');
+
+    pauseBtn.addEventListener('click', () => {
+        isPaused = !isPaused;
+        pauseBtn.textContent = isPaused ? 'Continue' : 'Pause';
+
+        if (isPaused) {
+            cancelAnimationFrame(animationId);
+        } else {
+            render();
+        }
+    });
+
+    // Reset button
+    document.getElementById('reset-btn').addEventListener('click', () => {
+
+        currentObject.rotation.set(0, 0, 0);
+        currentObject.position.set(0, 0, 0);
+        currentScale = 1;
+        currentObject.scale.set(1, 1, 1);
+
+        speedSlider.value = 0.02;
+        speedDisplay.textContent = '0.020';
+        angle = 0.02;
+
+        isPaused = false;
+        pauseBtn.textContent = 'Pause';
+
+        updateInfoDisplay();
+    });
+
+    updateInfoDisplay();
+};
+
+const updateInfoDisplay = () => {
+    document.getElementById('scale-display').textContent = currentScale.toFixed(1);
+
+    document.getElementById('object-count').textContent = scene.children.length;
+};
+
+const updateFPS = () => {
+    frameCount++;
+    const now = performance.now();
+
+    if (now - lastFPSUpdate >= 1000) {
+        const fps = Math.round((frameCount * 1000) / (now - lastFPSUpdate));
+        document.getElementById('fps-counter').textContent = `FPS: ${fps}`;
+        document.getElementById('fps-display').textContent = fps;
+        frameCount = 0;
+        lastFPSUpdate = now;
+    }
+};
+
 
 // The render loop.
 const render = () => {
+    if (isPaused) return;
+
     //  Apply translation
     currentObject.position.set(mouseX, mouseY);
 
@@ -92,9 +164,12 @@ const render = () => {
     // Apply scaling
     currentObject.scale.set(currentScale, currentScale, currentScale);
 
+    updateInfoDisplay();
+    updateFPS();
+
     // Draw the scene
     renderer.render(scene, camera);
 
     // Make the new frame
-    requestAnimationFrame(render);
+    animationId = requestAnimationFrame(render);
 }
