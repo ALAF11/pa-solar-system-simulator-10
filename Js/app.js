@@ -28,6 +28,10 @@ let isMouseLocked = false;
 let cameraRotation = { x: 0, y: 0 };
 const mouseSensitivity = 0.002;
 let lastTime = 0;
+let sun;
+let planets = [];
+let maxPlanets = 10;
+let simulationSpeed = 30;
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -66,7 +70,7 @@ const init = () => {
     // Scene defines properties like the background, and defines the objects to be rendered
     scene = new THREE.Scene();
 
-    makeSphere();
+    createSolarSystem();
 
     // Create a camera
     const fov = 75;
@@ -75,7 +79,11 @@ const init = () => {
 
     const aspect = canvas.width / canvas.height;
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    camera.position.z = cameraPositionZ;
+    camera.position.set(0, 5, cameraPositionZ);
+    camera.lookAt(0, 0, 0);
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     setupKeyboardControls();
     setupMouseControls();
@@ -86,29 +94,92 @@ const init = () => {
 
 }
 
-//Draws a sphere.
-const makeSphere = () => {
-    // Create a sphere
-    const SphereRadius = 1;
-    //
-    const geometry = new THREE.SphereGeometry(SphereRadius);
-    //
-    const materials = new THREE.MeshBasicMaterial({color: 0xffffff});
-    //
-    const sphere = new THREE.Mesh(geometry, materials);
-    //
-    scene.add(sphere);
-    //
-    currentObject = sphere;
-}
+//Create a sun.
+const createSun = () => {
+    // Remove objeto atual se existir
+    if (currentObject) {
+        scene.remove(currentObject);
+    }
+
+    //geometry
+    const sunRadius = 2;
+    const sunGeometry = new THREE.SphereGeometry(sunRadius, 32, 32);
+
+    //light
+    const sunMaterial = new THREE.MeshBasicMaterial({
+        color: 0xFFD700, // Dourado
+        emissive: 0xFFAA00 // Emissão de luz laranja
+    });
+
+    // create mesh
+    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.name = "Sol";
+    scene.add(sun);
+
+    const sunLight = new THREE.PointLight(0xFFFFAA, 2, 100);
+    sunLight.position.set(0, 0, 0);
+    sunLight.castShadow = true;
+    scene.add(sunLight);
+
+    currentObject = sun;
+    return sun;
+};
+
+const planetData = [
+    { name: "Mercúrio", radius: 0.3, orbitRadius: 4, color: 0x8C7853, speed: 2.0 },
+    { name: "Vénus", radius: 0.4, orbitRadius: 6, color: 0xFFA500, speed: 1.5 },
+    { name: "Terra", radius: 0.5, orbitRadius: 8, color: 0x4169E1, speed: 1.0 },
+    { name: "Marte", radius: 0.4, orbitRadius: 10, color: 0xFF4500, speed: 0.8 },
+    { name: "Júpiter", radius: 1.2, orbitRadius: 14, color: 0xD2691E, speed: 0.5 }
+];
+
+const createPlanet = (planetInfo) => {
+    const geometry = new THREE.SphereGeometry(planetInfo.radius, 16, 16);
+    const material = new THREE.MeshLambertMaterial({ color: planetInfo.color });
+    const planet = new THREE.Mesh(geometry, material);
+
+    planet.userData = {
+        name: planetInfo.name,
+        orbitRadius: planetInfo.orbitRadius,
+        orbitSpeed: planetInfo.speed,
+        angle: Math.random() * Math.PI * 2,
+        rotationSpeed: Math.random() * 0.02 + 0.01
+    };
+
+    // Initial position
+    planet.position.x = Math.cos(planet.userData.angle) * planetInfo.orbitRadius;
+    planet.position.z = Math.sin(planet.userData.angle) * planetInfo.orbitRadius;
+
+    planet.castShadow = true;
+    planet.receiveShadow = true;
+
+    scene.add(planet);
+    planets.push(planet);
+
+    return planet;
+};
+
+const createSolarSystem = () => {
+    // Create Sol
+    sun = createSun();
+
+    // Create planets
+    planetData.forEach(data => createPlanet(data));
+
+};
 
 const setupUIControls = () => {
 
     const speedSlider = document.getElementById('rotation-speed');
     const speedDisplay = document.getElementById('speed-display');
 
+    speedSlider.min = 0;
+    speedSlider.max = 180;
+    speedSlider.value = 30;
+    speedSlider.step = 1;
+
     speedSlider.addEventListener('input', (e) => {
-        angle = parseFloat(e.target.value);
+        simulationSpeed = parseFloat(e.target.value);
         speedDisplay.textContent = angle.toFixed(3);
     });
 
@@ -128,10 +199,22 @@ const setupUIControls = () => {
     // Reset button
     document.getElementById('reset-btn').addEventListener('click', () => {
 
-        currentObject.rotation.set(0, 0, 0);
-        currentObject.position.set(0, 0, 0);
-        currentScale = 1;
-        currentObject.scale.set(1, 1, 1);
+        if(currentObject) {
+            currentObject.rotation.set(0, 0, 0);
+            currentObject.position.set(0, 0, 0);
+            currentScale = 1;
+            currentObject.scale.set(1, 1, 1);
+        }
+
+        // Camera reset
+        camera.position.set(0, 5, cameraPositionZ);
+        camera.rotation.set(0, 0, 0);
+        cameraRotation.x = 0;
+        cameraRotation.y = 0;
+
+        planets.forEach(planet => {
+            planet.userData.angle = Math.random() * Math.PI * 2;
+        });
 
         speedSlider.value = 0.02;
         speedDisplay.textContent = '0.020';
@@ -266,6 +349,19 @@ const setupMouseControls = () => {
     });
 };
 
+const updatePlanets = (deltaTime) => {
+    planets.forEach(planet => {
+        const userData = planet.userData;
+
+        userData.angle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
+
+        planet.position.x = Math.cos(userData.angle) * userData.orbitRadius;
+        planet.position.z = Math.sin(userData.angle) * userData.orbitRadius;
+
+        planet.rotation.y += userData.rotationSpeed;
+    });
+};
+
 
 // The render loop.
 const render = (currentTime = 0) => {
@@ -274,15 +370,12 @@ const render = (currentTime = 0) => {
 
     if (!isPaused) {
         updateCameraMovement(deltaTime);
-        //  Apply translation
-        currentObject.position.set(mouseX, mouseY);
+        updatePlanets(deltaTime);
 
-        //  Apply rotation
-        currentObject.rotation.x += angle;
-        currentObject.rotation.y += angle;
-
-        // Apply scaling
-        currentObject.scale.set(currentScale, currentScale, currentScale);
+        if(currentObject){
+            //  Apply rotation
+            currentObject.rotation.y += angle;
+        }
     }
 
     updateInfoDisplay();
