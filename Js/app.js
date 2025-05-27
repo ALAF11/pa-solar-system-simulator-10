@@ -32,6 +32,12 @@ let sun;
 let planets = [];
 let maxPlanets = 10;
 let simulationSpeed = 30;
+let textureLoader;
+let availableTextures = {};
+let texturesLoaded = 0;
+let totalTextures = 0;
+const PLANET_TEXTURES = ['earth', 'mars', 'jupiter', 'moon'];
+const SUN_TEXTURE = 'sun';
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -72,6 +78,8 @@ const init = () => {
 
     createSolarSystem();
 
+    initTextureSystem();
+
     // Create a camera
     const fov = 75;
     const  near = 0.1;
@@ -87,6 +95,8 @@ const init = () => {
 
     setupKeyboardControls();
     setupMouseControls();
+    setupTextureControls();
+    setupObjectSelection();
 
     // Render
     render();
@@ -134,7 +144,7 @@ const planetData = [
 ];
 
 const createPlanet = (planetInfo) => {
-    const geometry = new THREE.SphereGeometry(planetInfo.radius, 16, 16);
+    const geometry = new THREE.SphereGeometry(planetInfo.radius, 32, 32);
     const material = new THREE.MeshLambertMaterial({ color: planetInfo.color });
     const planet = new THREE.Mesh(geometry, material);
 
@@ -143,7 +153,9 @@ const createPlanet = (planetInfo) => {
         orbitRadius: planetInfo.orbitRadius,
         orbitSpeed: planetInfo.speed,
         angle: Math.random() * Math.PI * 2,
-        rotationSpeed: Math.random() * 0.02 + 0.01
+        rotationSpeed: Math.random() * 0.02 + 0.01,
+        originalColor: planetInfo.color,
+        currentTexture: null
     };
 
     // Initial position
@@ -362,6 +374,280 @@ const updatePlanets = (deltaTime) => {
     });
 };
 
+const initTextureSystem = () => {
+    textureLoader = new THREE.TextureLoader();
+
+    const textureFiles = {
+        earth: 'textures/earth.jpg',
+        mars: 'textures/mars.jpg',
+        jupiter: 'textures/jupiter.jpg',
+        moon: 'textures/moon.jpg',
+        sun: 'textures/sun.jpg'
+    };
+
+    totalTextures = Object.keys(textureFiles).length;
+
+    loadExternalTextures(textureFiles);
+};
+
+const loadExternalTextures = (textureFiles) => {
+    Object.entries(textureFiles).forEach(([name, path]) => {
+        textureLoader.load(
+            path,
+            // on load
+            (texture) => {
+
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+
+                availableTextures[name] = texture;
+                texturesLoaded++;
+
+                if (texturesLoaded === totalTextures) {
+                    onAllTexturesLoaded();
+                }
+            },
+            // onProgress
+            undefined,
+            // onError
+            (error) => {
+                console.warn(`❌ Erro ao carregar textura ${name}:`, error);
+                // Cria textura de fallback
+                availableTextures[name] = createFallbackTexture(name);
+                texturesLoaded++;
+
+                if (texturesLoaded === totalTextures) {
+                    onAllTexturesLoaded();
+                }
+            }
+        );
+    });
+};
+
+const createFallbackTexture = (name) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    const colors = {
+        earth: '#4169E1',
+        mars: '#CD5C5C',
+        jupiter: '#D2691E',
+        moon: '#C0C0C0',
+        sun: '#FFD700'
+    };
+
+    ctx.fillStyle = colors[name] || '#808080';
+    ctx.fillRect(0, 0, 256, 256);
+
+    return new THREE.CanvasTexture(canvas);
+};
+
+const onAllTexturesLoaded = () => {
+    updateTextureDropdown();
+    applyDefaultTextures();
+    updateObjectList();
+};
+
+const applyDefaultTextures = () => {
+
+    planets.forEach((planet, index) => {
+        const textureIndex = index % PLANET_TEXTURES.length;
+        const textureName = PLANET_TEXTURES[textureIndex];
+
+        if (availableTextures[textureName]) {
+            applyTextureToPlanet(planet, textureName);
+        }
+    });
+
+    if (sun && availableTextures[SUN_TEXTURE]) {
+        applyTextureToSun(availableTextures[SUN_TEXTURE]);
+    }
+};
+
+const applyTextureToPlanet = (planet, textureType) => {
+    if (textureType === SUN_TEXTURE) {
+        return;
+    }
+
+    if (!PLANET_TEXTURES.includes(textureType)) {
+        return;
+    }
+
+    if (!availableTextures[textureType]) {
+        return;
+    }
+
+    const material = new THREE.MeshLambertMaterial({
+        map: availableTextures[textureType]
+    });
+
+    planet.material = material;
+    planet.userData.currentTexture = textureType;
+
+    updateObjectList();
+};
+
+const applyTextureToSun = (texture) => {
+    if (!sun) return;
+
+    const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        emissive: 0xFFAA00,
+        emissiveIntensity: 0.3
+    });
+
+    sun.material = material;
+};
+
+const updateTextureDropdown = () => {
+    const textureSelect = document.getElementById('texture-select');
+    const objectList = document.getElementById('object-list');
+
+    if (!textureSelect) return;
+
+    textureSelect.innerHTML = '<option value="none">Sem Textura</option>';
+
+    const selectedObject = objectList ? objectList.value : '';
+
+    if (!selectedObject || !selectedObject.startsWith('planet-')) {
+        return;
+    }
+
+    PLANET_TEXTURES.forEach(textureName => {
+        if (availableTextures[textureName]) {
+            const option = document.createElement('option');
+            option.value = textureName;
+
+            const emojis = {
+                earth: '🌍',
+                mars: '🔴',
+                jupiter: '🟠',
+                moon: '🌙'
+            };
+
+            option.textContent = `${emojis[textureName] || '🪐'} ${textureName.charAt(0).toUpperCase() + textureName.slice(1)}`;
+            textureSelect.appendChild(option);
+        }
+    });
+};
+
+const setupTextureControls = () => {
+    const textureSelect = document.getElementById('texture-select');
+    const applyTextureBtn = document.getElementById('apply-texture');
+    const objectList = document.getElementById('object-list');
+
+    if (!textureSelect || !applyTextureBtn || !objectList) {
+        return;
+    }
+
+    applyTextureBtn.addEventListener('click', () => {
+        const selectedObject = objectList.value;
+        const selectedTexture = textureSelect.value;
+
+        if (!selectedObject || !selectedObject.startsWith('planet-')) {
+            return;
+        }
+
+        if (selectedTexture === SUN_TEXTURE) {
+            return;
+        }
+
+        if (selectedTexture === 'none') {
+            removeTextureFromObject(selectedObject);
+            return;
+        }
+
+        if (!availableTextures[selectedTexture]) {
+            return;
+        }
+
+        const planet = findObjectByName(selectedObject);
+        if (planet) {
+            applyTextureToPlanet(planet, selectedTexture);
+        }
+    });
+};
+
+const updateObjectList = () => {
+    const objectList = document.getElementById('object-list');
+    if (!objectList) return;
+
+    objectList.innerHTML = '<option value="">Selecionar objeto...</option>';
+
+
+    planets.forEach((planet, index) => {
+        const option = document.createElement('option');
+        option.value = `planet-${index}`;
+        option.textContent = `🪐 ${planet.userData.name}`;
+        if (planet.userData.currentTexture) {
+            option.textContent += ` (${planet.userData.currentTexture})`;
+        }
+        objectList.appendChild(option);
+    });
+};
+
+const removeTextureFromObject = (objectName) => {
+    if (!objectName.startsWith('planet-')) {
+        return;
+    }
+
+    const object = findObjectByName(objectName);
+    if (!object) return;
+
+    object.material = new THREE.MeshLambertMaterial({
+        color: object.userData.originalColor || 0xffffff
+    });
+    object.userData.currentTexture = null;
+
+    updateObjectList();
+};
+
+const findObjectByName = (objectName) => {
+
+    if (objectName.startsWith('planet-')) {
+        const index = parseInt(objectName.split('-')[1]);
+        return planets[index];
+    }
+
+    return null;
+};
+
+const setupObjectSelection = () => {
+    const objectList = document.getElementById('object-list');
+
+    if (!objectList) return;
+
+    objectList.addEventListener('change', () => {
+
+        updateTextureDropdown();
+
+        const textureSelect = document.getElementById('texture-select');
+        if (textureSelect) {
+            textureSelect.value = 'none';
+        }
+    });
+};
+
+const addNewPlanet = (planetInfo) => {
+
+    if (planets.length >= maxPlanets) {
+        return;
+    }
+
+    const newPlanet = createPlanet(planetInfo);
+
+    const randomTexture = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
+
+    if (availableTextures[randomTexture]) {
+        applyTextureToPlanet(newPlanet, randomTexture);
+    }
+
+    updateObjectList();
+};
 
 // The render loop.
 const render = (currentTime = 0) => {
