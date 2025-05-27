@@ -238,6 +238,10 @@ const setupUIControls = () => {
         updateInfoDisplay();
     });
 
+    document.getElementById('add-planet').addEventListener('click', addPlanet);
+
+    document.getElementById('remove-object').addEventListener('click', removePlanet);
+
     updateInfoDisplay();
 };
 
@@ -247,6 +251,8 @@ const updateInfoDisplay = () => {
     document.getElementById('camera-x').textContent = camera.position.x.toFixed(1);
     document.getElementById('camera-y').textContent = camera.position.y.toFixed(1);
     document.getElementById('camera-z').textContent = camera.position.z.toFixed(1);
+
+    updatePlanetCounter();
 };
 
 const updateFPS = () => {
@@ -632,22 +638,108 @@ const setupObjectSelection = () => {
     });
 };
 
-const addNewPlanet = (planetInfo) => {
-
+const addPlanet = () => {
     if (planets.length >= maxPlanets) {
         return;
     }
 
-    const newPlanet = createPlanet(planetInfo);
+    const nextOrbitRadius = calculateNextOrbitRadius();
+
+    const newPlanetData = generateRandomPlanetData(nextOrbitRadius);
+
+    const newPlanet = createPlanet(newPlanetData);
 
     const randomTexture = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
-
     if (availableTextures[randomTexture]) {
         applyTextureToPlanet(newPlanet, randomTexture);
     }
 
     updateObjectList();
+    updateInfoDisplay();
+
 };
+
+const calculateNextOrbitRadius = () => {
+    if (planets.length === 0) {
+        return 4;
+    }
+
+    const maxCurrentRadius = Math.max(...planets.map(p => p.userData.orbitRadius));
+
+    return maxCurrentRadius + 3;
+};
+
+const generateRandomPlanetData = (orbitRadius) => {
+    const planetNames = [
+        "Kepler-442b", "HD 40307g", "Gliese 667Cc", "Kepler-438b",
+        "Wolf 1061c", "Proxima Centauri b", "Trappist-1e", "LHS 1140b",
+        "K2-18b", "TOI-715b"
+    ];
+
+    const planetColors = [
+        0x4169E1, 0xFF4500, 0x32CD32, 0xFFD700, 0x9370DB,
+        0xFF6347, 0x20B2AA, 0xDDA0DD, 0xF0E68C, 0x87CEEB
+    ];
+
+    const usedNames = planets.map(p => p.userData.name);
+    const availableNames = planetNames.filter(name => !usedNames.includes(name));
+
+    return {
+        name: availableNames.length > 0 ?
+            availableNames[Math.floor(Math.random() * availableNames.length)] :
+            `Planeta-${planets.length + 1}`,
+        radius: 0.3 + Math.random() * 0.8, // Entre 0.3 e 1.1
+        orbitRadius: orbitRadius,
+        color: planetColors[Math.floor(Math.random() * planetColors.length)],
+        speed: 0.3 + Math.random() * 1.5 // Entre 0.3 e 1.8
+    };
+};
+
+const removePlanet = () => {
+    const objectList = document.getElementById('object-list');
+    const selectedObject = objectList.value;
+
+    if (!selectedObject || !selectedObject.startsWith('planet-')) {
+        return;
+    }
+
+    const planetIndex = parseInt(selectedObject.split('-')[1]);
+    const planet = planets[planetIndex];
+
+    if (!planet) {
+        return;
+    }
+
+    const confirmRemoval = confirm(`Remover planeta "${planet.userData.name}"?`);
+    if (!confirmRemoval) return;
+
+    scene.remove(planet);
+
+    planets.splice(planetIndex, 1);
+
+    updateObjectList();
+    updateInfoDisplay();
+
+    objectList.value = '';
+};
+
+const updatePlanetCounter = () => {
+    const planetCountElement = document.getElementById('planet-count');
+    if (planetCountElement) {
+        planetCountElement.textContent = planets.length;
+    }
+
+    const maxOrbitElement = document.getElementById('max-orbit');
+    if (maxOrbitElement) {
+        if (planets.length > 0) {
+            const maxOrbit = Math.max(...planets.map(p => p.userData.orbitRadius));
+            maxOrbitElement.textContent = maxOrbit.toFixed(1);
+        } else {
+            maxOrbitElement.textContent = '0.0';
+        }
+    }
+};
+
 
 // The render loop.
 const render = (currentTime = 0) => {
