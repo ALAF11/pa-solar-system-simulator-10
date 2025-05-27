@@ -15,7 +15,7 @@
 
         .container {
             display: flex;
-            flex-direction:row;
+            flex-direction: row;
             gap: 20px;
             max-width: 1200px;
             margin: 0 auto;
@@ -30,27 +30,84 @@
         }
 
         .controls-panel {
-            background: linear-gradient(135deg, rgba(20, 30, 48, 0.9), rgba(36, 59, 85, 0.9));
-            border-radius: 10px;
-            padding: 20px;
-            width: 300px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            width: 350px;
+            height: 800px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+        }
+
+        .tabs-container {
+            background: linear-gradient(135deg, rgba(20, 30, 48, 0.9), rgba(36, 59, 85, 0.9));
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs-header {
+            display: flex;
+            background: #1a1a2e;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 8px;
+            background: #2c3e50;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .tab-button:hover {
+            background: #34495e;
+        }
+
+        .tab-button.active {
+            background: #1e90ff;
+            color: #ffffff;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
         }
 
         .control-group {
             padding: 20px;
             border: 2px solid #1e90ff;
             border-radius: 8px;
+            margin-bottom: 15px;
+            background: rgba(44, 62, 80, 0.3);
             box-shadow: 0 0 20px rgba(30, 144, 255, 0.5);
-            gap:10px
         }
 
         .control-group h3 {
-            margin: 0 0 10px;
+            margin: 0 0 15px;
             font-size: 1.1em;
+            color: #1e90ff;
+            text-transform: uppercase;
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        .control-group h4 {
+            margin: 0 0 15px;
+            font-size: 1em;
             color: #1e90ff;
             text-transform: uppercase;
         }
@@ -59,7 +116,8 @@
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
+            color: #e0e0e0;
         }
 
         select, input, button {
@@ -67,17 +125,18 @@
             border: none;
             border-radius: 5px;
             font-family: 'Orbitron', sans-serif;
-            font-size: 0.9em;
+            font-size: 0.85em;
             transition: all 0.3s;
             width: 100%;
             box-sizing: border-box;
         }
 
-        select, input[type="number"], input[type="color"] {
+        select, input[type="number"], input[type="range"], input[type="color"] {
             background: #2c3e50;
             color: #ffffff;
             border: 1px solid #1e90ff;
         }
+
         input::placeholder {
             color: #a0a0a0;
         }
@@ -87,15 +146,50 @@
             color: #ffffff;
             cursor: pointer;
             font-weight: bold;
+            margin-bottom: 8px;
         }
 
         button:hover {
             background: linear-gradient(45deg, #00b7eb, #1e90ff);
-            transform: scale(1.05);
+            transform: scale(1.02);
+        }
+
+        .danger-btn {
+            background: linear-gradient(45deg, #f44336, #d32f2f) !important;
+        }
+
+        .warning-btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22) !important;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .info-section {
+            margin: 10px 0;
+            padding: 10px 0;
+            border-top: 1px solid #444;
+        }
+
+        .info-section:first-child {
+            border-top: none;
+            margin-top: 0;
+            padding-top: 0;
         }
 
         .margin_bottom {
             margin-bottom: 15px;
+        }
+
+        .help-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 10px;
+            line-height: 1.4;
         }
 
         select:focus, input:focus {
@@ -103,129 +197,259 @@
             border-color: #00b7eb;
             box-shadow: 0 0 5px rgba(0, 183, 235, 0.5);
         }
-        @media (max-width: 900px) {
-            #canvas {
+
+        .tab-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .tab-content::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+
+        .tab-content::-webkit-scrollbar-thumb {
+            background: #1e90ff;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #gl-canvas {
                 width: 100%;
                 max-width: 600px;
                 height: auto;
                 aspect-ratio: 1 / 1;
             }
-            #controls {
+
+            .controls-panel {
                 width: 100%;
-                max-width: 300px;
+                max-width: 600px;
             }
         }
     </style>
 </head>
 <body>
-<h1 style="text-align: center; color: #1e90ff;">PA Solar System Simulator</h1>
+<h1 style="text-align: center; color: #1e90ff; margin-bottom: 30px;">PA Solar System Simulator</h1>
 
 <div class="container">
     <canvas id="gl-canvas" width="800" height="800"></canvas>
 
     <div class="controls-panel">
+        <div class="tabs-container">
 
-        <div class="control-group">
-            <h3>Controles de Simulação</h3>
+            <div class="tabs-header">
+                <button class="tab-button active" data-tab="simulation">Simulação</button>
+                <button class="tab-button" data-tab="objects">Objetos</button>
+                <button class="tab-button" data-tab="editor">Editor</button>
+            </div>
 
-            <label>Rotation Speed:</label>
+            <div class="tab-content active" id="simulation-tab">
+                <div class="control-group">
+                    <h3>Controles de Simulação</h3>
 
-            <input type="range" id="rotation-speed" min="0" max="0.1" value="0.02" step="0.001">
-            <span id="speed-display">0.02</span>
-            <br><br>
+                    <label>Velocidade de Rotação:</label>
+                    <input type="range" id="rotation-speed" min="0" max="180" value="30" step="1">
+                    <div style="text-align: center; margin: 8px 0;">
+                        <span id="speed-display">30°/s</span>
+                    </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button id="pause-btn">Pause</button>
-                <button id="reset-btn">Reset</button>
+                    <div class="button-group">
+                        <button id="pause-btn">Pause</button>
+                        <button id="reset-btn" class="warning-btn">Reset</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Informações do Sistema</h3>
+
+                    <div><span id="fps-counter">--</span></div>
+                    <div>FPS Value: <span id="fps-display">0</span></div>
+                    <div>Objects: <span id="object-count">1</span></div>
+                    <div>Scale: <span id="scale-display">1.0</span></div>
+
+                    <div class="info-section">
+                        <div>Camera X: <span id="camera-x">0</span></div>
+                        <div>Camera Y: <span id="camera-y">0</span></div>
+                        <div>Camera Z: <span id="camera-z">0</span></div>
+                    </div>
+
+                    <div class="info-section">
+                        <div>Planetas: <span id="planet-count">5</span>/10</div>
+                        <div>Raio orbital máximo: <span id="max-orbit">14.0</span></div>
+                    </div>
+
+                    <div class="help-text">
+                        <strong>Navegação:</strong><br>
+                        WASD: Movimento horizontal<br>
+                        Q/R: Movimento vertical<br>
+                        Mouse: Clique para olhar em volta
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="objects-tab">
+                <div class="control-group">
+                    <h3>Gestão de Objetos</h3>
+
+                    <label for="object-list" class="margin_bottom">Objetos na Cena:</label>
+                    <select id="object-list" class="margin_bottom">
+                        <option value="">Selecionar objeto...</option>
+                    </select>
+
+                    <div class="button-group">
+                        <button id="add-planet">Adicionar Planeta</button>
+                        <button id="remove-object" class="danger-btn">Remover</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>Texturas e Materiais</h3>
+
+                    <label for="texture-select" class="margin_bottom">Textura:</label>
+                    <select id="texture-select" class="margin_bottom">
+                        <option value="none">Sem Textura</option>
+                    </select>
+
+                    <button id="apply-texture">Aplicar Textura</button>
+
+                    <div class="help-text">
+                        1. Selecione um objeto acima<br>
+                        2. Escolha uma textura<br>
+                        3. Clique "Aplicar Textura"
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>3D Models</h3>
+
+                    <label for="model-select" class="margin_bottom">Carregar Modelo:</label>
+                    <select id="model-select" class="margin_bottom">
+                        <option value="">Selecionar modelo...</option>
+                    </select>
+
+                    <button id="load-model">Carregar Modelo</button>
+
+                    <div style="margin: 10px 0;">
+                        Modelos: <span id="model-count">0</span>/5
+                    </div>
+
+                    <div class="help-text">
+                        Formatos suportados: OBJ<br>
+                        Coloque os modelos na pasta 'models/'
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="editor-tab">
+                <div class="control-group" id="object-editor" style="display: none;">
+                    <h3>Editor de Objeto</h3>
+
+                    <div style="margin-bottom: 15px; color: #1e90ff;">
+                        Objeto: <span id="selected-object-name">Nenhum</span>
+                    </div>
+
+                    <div id="planet-controls" style="display: none;">
+                        <h4>Propriedades do Planeta</h4>
+
+                        <label>Velocidade Orbital:</label>
+                        <input type="range" id="orbit-speed" min="0.1" max="3.0" value="1.0" step="0.1">
+                        <div style="text-align: center; margin: 5px 0;">
+                            <span id="orbit-speed-display">1.0</span>
+                        </div>
+
+                        <label>Escala do Planeta:</label>
+                        <input type="range" id="planet-scale" min="0.3" max="3.0" value="1.0" step="0.1">
+                        <div style="text-align: center; margin: 5px 0;">
+                            <span id="planet-scale-display">1.0</span>
+                        </div>
+
+                        <label>Rotação X:</label>
+                        <input type="range" id="rotation-x" min="0" max="360" value="0" step="1">
+                        <div style="text-align: center; margin: 5px 0;">
+                            <span id="rotation-x-display">0°</span>
+                        </div>
+
+                        <label>Rotação Y:</label>
+                        <input type="range" id="rotation-y" min="0" max="360" value="0" step="1">
+                        <div style="text-align: center; margin: 5px 0;">
+                            <span id="rotation-y-display">0°</span>
+                        </div>
+
+                        <label>Rotação Z:</label>
+                        <input type="range" id="rotation-z" min="0" max="360" value="0" step="1">
+                        <div style="text-align: center; margin: 5px 0;">
+                            <span id="rotation-z-display">0°</span>
+                        </div>
+                    </div>
+
+                    <div id="sun-controls" style="display: none;">
+                        <h4>Propriedades do Sol</h4>
+
+                        <label>Intensidade da Luz:</label>
+                        <input type="range" id="sun-intensity" min="0.1" max="5.0" value="2.0" step="0.1">
+                        <div style="text-align: center; margin: 5px 0;">
+                            <span id="sun-intensity-display">2.0</span>
+                        </div>
+
+                        <label class="margin_bottom">Cor da Luz:</label>
+                        <input type="color" id="sun-color" value="#ffffaa" class="margin_bottom">
+                    </div>
+
+                    <div class="button-group">
+                        <button id="apply-changes">Aplicar Mudanças</button>
+                        <button id="reset-object" class="warning-btn">Reset Objeto</button>
+                    </div>
+                </div>
+
+                <div id="no-selection" class="help-text" style="text-align: center; padding: 40px 20px;">
+                    <h3 style="color: #1e90ff;">Editor de Objetos</h3>
+                    <p>Selecione um objeto na aba "Objetos" para começar a editar suas propriedades.</p>
+                </div>
             </div>
         </div>
-
-        <div class="control-group">
-            <h3>Info</h3>
-            <div> <span id="fps-counter">--</span></div>
-            <div>FPS Value: <span id="fps-display">0</span></div>
-            <div>Objects: <span id="object-count">1</span></div>
-            <div>Scale: <span id="scale-display">1.0</span></div>
-
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
-                <div>Camera X: <span id="camera-x">0</span></div>
-                <div>Camera Y: <span id="camera-y">0</span></div>
-                <div>Camera Z: <span id="camera-z">0</span></div>
-            </div>
-
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #444;">
-                <div>Planetas: <span id="planet-count"><?</span>/10</div>
-                <div>Raio orbital máximo: <span id="max-orbit">?</span></div>
-            </div>
-
-            <div style="margin-top: 10px; font-size: 12px; color: #999;">
-                <strong>Navegação:</strong><br><br>
-                WASD: Movimento horizontal<br>
-                Q/R: Movimento vertical<br>
-                Mouse: Clique para olhar em volta
-            </div>
-        </div>
-
-
-        <div class="control-group">
-            <h3>Gestão de Objetos</h3>
-
-            <label class="margin_bottom" for="object-list">Objetos na Cena:</label>
-            <select id="object-list">
-                <option value="">Selecionar objeto...</option>
-            </select>
-            <br><br>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button id="add-planet">Adicionar Planeta</button>
-                <button id="remove-object" style="background-color: #f44336;">Remover</button>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <h3>Texturas e Materiais</h3>
-
-            <label class="margin_bottom" for="texture-select">Textura:</label>
-            <select id="texture-select">
-                <option value="none">Sem Textura</option>
-            </select>
-            <br><br>
-
-            <button id="apply-texture">Aplicar Textura</button>
-
-            <div style="font-size: 12px; color: #999; margin-top: 10px;">
-                1. Selecione um objeto acima<br>
-                2. Escolha uma textura<br>
-                3. Clique "Aplicar Textura"
-            </div>
-        </div>
-
-        <div class="control-group">
-            <h3>3D Models</h3>
-
-            <label class="margin_bottom" for="model-select">Carregar Modelo:</label>
-            <select id="model-select">
-                <option value="">Selecionar modelo...</option>
-            </select>
-            <br><br>
-
-            <button id="load-model">Carregar Modelo</button>
-
-            <div style="font-size: 12px; color: #999; margin: 10px 0;">
-                Modelos: <span id="model-count">0</span>/5
-            </div>
-
-            <div style="font-size: 12px; color: #888; margin-top: 10px;">
-                Formatos suportados: OBJ<br>
-                Coloque os modelos na pasta 'models/'
-            </div>
-        </div>
-
-
     </div>
 </div>
 
 <script src="Js/three.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/OBJLoader.js"></script>
 <script src="Js/app.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.getAttribute('data-tab');
+
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                button.classList.add('active');
+                document.getElementById(targetTab + '-tab').classList.add('active');
+            });
+        });
+
+        const objectList = document.getElementById('object-list');
+        const objectEditor = document.getElementById('object-editor');
+        const noSelection = document.getElementById('no-selection');
+
+        if (objectList) {
+            objectList.addEventListener('change', function() {
+                if (this.value) {
+                    objectEditor.style.display = 'block';
+                    noSelection.style.display = 'none';
+                } else {
+                    objectEditor.style.display = 'none';
+                    noSelection.style.display = 'block';
+                }
+            });
+        }
+    });
+</script>
 </body>
 </html>

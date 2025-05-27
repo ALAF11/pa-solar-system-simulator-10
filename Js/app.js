@@ -48,6 +48,10 @@ let availableModelTypes = {
     asteroid: { name: 'asteroid', file: 'models/asteroid.obj', scale: 0.4 },
     probe: { name: 'probe', file: 'models/probe.obj', scale: 0.2 }
 };
+let selectedObject = null;
+let selectedObjectType = null;
+let sunLight;
+let skyboxSphere = null;
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -86,6 +90,8 @@ const init = () => {
     // Scene defines properties like the background, and defines the objects to be rendered
     scene = new THREE.Scene();
 
+    setupBackground();
+
     createSolarSystem();
     initTextureSystem();
     initModelSystem();
@@ -112,6 +118,7 @@ const init = () => {
     // Render
     render();
     setupUIControls();
+    setupObjectEditor();
 
 }
 
@@ -120,6 +127,10 @@ const createSun = () => {
     // Remove objeto atual se existir
     if (currentObject) {
         scene.remove(currentObject);
+    }
+
+    if (sunLight) {
+        scene.remove(sunLight);
     }
 
     //geometry
@@ -137,7 +148,7 @@ const createSun = () => {
     sun.name = "Sol";
     scene.add(sun);
 
-    const sunLight = new THREE.PointLight(0xFFFFAA, 2, 100);
+    sunLight = new THREE.PointLight(0xFFFFAA, 2, 100);
     sunLight.position.set(0, 0, 0);
     sunLight.castShadow = true;
     scene.add(sunLight);
@@ -431,8 +442,6 @@ const loadExternalTextures = (textureFiles) => {
             undefined,
             // onError
             (error) => {
-                console.warn(`❌ Erro ao carregar textura ${name}:`, error);
-                // Cria textura de fallback
                 availableTextures[name] = createFallbackTexture(name);
                 texturesLoaded++;
 
@@ -596,6 +605,12 @@ const updateObjectList = () => {
 
     objectList.innerHTML = '<option value="">Selecionar objeto...</option>';
 
+    if (sun) {
+        const option = document.createElement('option');
+        option.value = 'sun';
+        option.textContent = '☀️ Sol';
+        objectList.appendChild(option);
+    }
 
     planets.forEach((planet, index) => {
         const option = document.createElement('option');
@@ -633,9 +648,18 @@ const removeTextureFromObject = (objectName) => {
 
 const findObjectByName = (objectName) => {
 
+    if (objectName === 'sun') {
+        return sun;
+    }
+
     if (objectName.startsWith('planet-')) {
         const index = parseInt(objectName.split('-')[1]);
         return planets[index];
+    }
+
+    if (objectName.startsWith('model-')) {
+        const index = parseInt(objectName.split('-')[1]);
+        return loadedModels[index];
     }
 
     return null;
@@ -794,7 +818,7 @@ const loadModel = (modelType) => {
 
     modelLoader.load(
         modelInfo.file,
-        // onLoad - sucesso
+        // onLoad
         (object) => {
             const model = setupLoadedModel(object, modelInfo, modelType);
             loadedModels.push(model);
@@ -947,6 +971,242 @@ const generateRandomStaticPosition = () => {
     };
 };
 
+const setupObjectEditor = () => {
+    const objectList = document.getElementById('object-list');
+
+    if (!objectList) return;
+
+    objectList.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+
+        if (!selectedValue) {
+            hideObjectEditor();
+            return;
+        }
+
+        showObjectEditor(selectedValue);
+    });
+
+    setupEditorControls();
+};
+
+const showObjectEditor = (objectValue) => {
+    const editor = document.getElementById('object-editor');
+    const planetControls = document.getElementById('planet-controls');
+    const sunControls = document.getElementById('sun-controls');
+    const objectInfo = document.getElementById('selected-object-name');
+
+    if (!editor) return;
+
+    planetControls.style.display = 'none';
+    sunControls.style.display = 'none';
+
+    if (objectValue === 'sun') {
+        selectedObject = sun;
+        selectedObjectType = 'sun';
+        objectInfo.textContent = 'Sol';
+        sunControls.style.display = 'block';
+        loadSunControls();
+    } else if (objectValue.startsWith('planet-')) {
+        const planetIndex = parseInt(objectValue.split('-')[1]);
+        selectedObject = planets[planetIndex];
+        selectedObjectType = 'planet';
+        objectInfo.textContent = selectedObject.userData.name;
+        planetControls.style.display = 'block';
+        loadPlanetControls();
+    }
+
+    editor.style.display = 'block';
+};
+
+const hideObjectEditor = () => {
+    const editor = document.getElementById('object-editor');
+    if (editor) {
+        editor.style.display = 'none';
+    }
+    selectedObject = null;
+    selectedObjectType = null;
+};
+
+const loadPlanetControls = () => {
+    if (!selectedObject || selectedObjectType !== 'planet') return;
+
+    const userData = selectedObject.userData;
+
+    document.getElementById('orbit-speed').value = userData.orbitSpeed || 1.0;
+    document.getElementById('orbit-speed-display').textContent = (userData.orbitSpeed || 1.0).toFixed(1);
+
+    document.getElementById('planet-scale').value = selectedObject.scale.x;
+    document.getElementById('planet-scale-display').textContent = selectedObject.scale.x.toFixed(1);
+
+    const rotationX = (selectedObject.rotation.x * 180 / Math.PI) % 360;
+    const rotationY = (selectedObject.rotation.y * 180 / Math.PI) % 360;
+    const rotationZ = (selectedObject.rotation.z * 180 / Math.PI) % 360;
+
+    document.getElementById('rotation-x').value = Math.round(rotationX);
+    document.getElementById('rotation-x-display').textContent = Math.round(rotationX) + '°';
+
+    document.getElementById('rotation-y').value = Math.round(rotationY);
+    document.getElementById('rotation-y-display').textContent = Math.round(rotationY) + '°';
+
+    document.getElementById('rotation-z').value = Math.round(rotationZ);
+    document.getElementById('rotation-z-display').textContent = Math.round(rotationZ) + '°';
+};
+
+const loadSunControls = () => {
+    if (!selectedObject || selectedObjectType !== 'sun' || !sunLight) return;
+
+    document.getElementById('sun-intensity').value = sunLight.intensity;
+    document.getElementById('sun-intensity-display').textContent = sunLight.intensity.toFixed(1);
+
+    const color = sunLight.color.getHex();
+    document.getElementById('sun-color').value = '#' + color.toString(16).padStart(6, '0');
+};
+
+const setupEditorControls = () => {
+
+    const orbitSpeedSlider = document.getElementById('orbit-speed');
+    const planetScaleSlider = document.getElementById('planet-scale');
+    const rotationXSlider = document.getElementById('rotation-x');
+    const rotationYSlider = document.getElementById('rotation-y');
+    const rotationZSlider = document.getElementById('rotation-z');
+
+    const sunIntensitySlider = document.getElementById('sun-intensity');
+    const sunColorPicker = document.getElementById('sun-color');
+
+    if (orbitSpeedSlider) {
+        orbitSpeedSlider.addEventListener('input', (e) => {
+            document.getElementById('orbit-speed-display').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+
+    if (planetScaleSlider) {
+        planetScaleSlider.addEventListener('input', (e) => {
+            document.getElementById('planet-scale-display').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+
+    if (rotationXSlider) {
+        rotationXSlider.addEventListener('input', (e) => {
+            document.getElementById('rotation-x-display').textContent = e.target.value + '°';
+        });
+    }
+
+    if (rotationYSlider) {
+        rotationYSlider.addEventListener('input', (e) => {
+            document.getElementById('rotation-y-display').textContent = e.target.value + '°';
+        });
+    }
+
+    if (rotationZSlider) {
+        rotationZSlider.addEventListener('input', (e) => {
+            document.getElementById('rotation-z-display').textContent = e.target.value + '°';
+        });
+    }
+
+    if (sunIntensitySlider) {
+        sunIntensitySlider.addEventListener('input', (e) => {
+            document.getElementById('sun-intensity-display').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+
+    const applyBtn = document.getElementById('apply-changes');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', applyObjectChanges);
+    }
+
+    const resetBtn = document.getElementById('reset-object');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetSelectedObject);
+    }
+};
+
+const applyObjectChanges = () => {
+    if (!selectedObject) return;
+
+    if (selectedObjectType === 'planet') {
+
+        const newOrbitSpeed = parseFloat(document.getElementById('orbit-speed').value);
+        selectedObject.userData.orbitSpeed = newOrbitSpeed;
+
+        const newScale = parseFloat(document.getElementById('planet-scale').value);
+        selectedObject.scale.setScalar(newScale);
+
+        const rotX = parseFloat(document.getElementById('rotation-x').value) * Math.PI / 180;
+        const rotY = parseFloat(document.getElementById('rotation-y').value) * Math.PI / 180;
+        const rotZ = parseFloat(document.getElementById('rotation-z').value) * Math.PI / 180;
+
+        selectedObject.rotation.set(rotX, rotY, rotZ);
+
+    } else if (selectedObjectType === 'sun' && sunLight) {
+
+        const newIntensity = parseFloat(document.getElementById('sun-intensity').value);
+        sunLight.intensity = newIntensity;
+
+        const newColor = document.getElementById('sun-color').value;
+        sunLight.color.setHex(parseInt(newColor.replace('#', ''), 16));
+
+    }
+};
+
+const resetSelectedObject = () => {
+    if (!selectedObject) return;
+
+    if (selectedObjectType === 'planet') {
+
+        selectedObject.userData.orbitSpeed = planetData.find(p => p.name === selectedObject.userData.name)?.speed || 1.0;
+        selectedObject.scale.setScalar(1.0);
+        selectedObject.rotation.set(0, 0, 0);
+
+        loadPlanetControls();
+
+    } else if (selectedObjectType === 'sun' && sunLight) {
+
+        sunLight.intensity = 2.0;
+        sunLight.color.setHex(0xFFFFAA);
+
+        loadSunControls();
+    }
+};
+
+const setupBackground = () => {
+    const loader = new THREE.TextureLoader();
+
+    loader.load(
+        'stars_milky.jpg',
+        function(texture) {
+            createSkyboxSphere(texture);
+        }
+    );
+};
+
+const createSkyboxSphere = (texture) => {
+    if (skyboxSphere) {
+        scene.remove(skyboxSphere);
+    }
+
+    const skyboxGeometry = new THREE.SphereGeometry(500, 60, 40);
+
+    const skyboxMaterial = new THREE.MeshBasicMaterial({
+        map: texture,
+        side: THREE.BackSide,
+        fog: false
+    });
+
+    skyboxSphere = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
+    skyboxSphere.name = "Skybox";
+
+    scene.add(skyboxSphere);
+};
+
+const updateSkybox = () => {
+    if (skyboxSphere && camera) {
+
+        skyboxSphere.position.copy(camera.position);
+    }
+};
+
+
 // The render loop.
 const render = (currentTime = 0) => {
     const deltaTime = (currentTime - lastTime) / 1000;
@@ -956,6 +1216,7 @@ const render = (currentTime = 0) => {
         updateCameraMovement(deltaTime);
         updatePlanets(deltaTime);
         updateModels(deltaTime);
+        updateSkybox();
 
         if(currentObject){
             //  Apply rotation
