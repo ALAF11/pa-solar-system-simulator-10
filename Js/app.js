@@ -38,6 +38,16 @@ let texturesLoaded = 0;
 let totalTextures = 0;
 const PLANET_TEXTURES = ['earth', 'mars', 'jupiter', 'moon'];
 const SUN_TEXTURE = 'sun';
+let loadedModels = [];
+let maxModels = 5;
+let modelLoader;
+let availableModelTypes = {
+    satellite: { name: 'satellite', file: 'models/Satellite.obj', scale: 0.5 },
+    rocket: { name: 'rocket', file: 'models/rocket.obj', scale: 0.5 },
+    ship: { name: 'spacial ship', file: 'models/space_ship.obj', scale: 0.8 },
+    asteroid: { name: 'asteroid', file: 'models/asteroid.obj', scale: 0.4 },
+    probe: { name: 'probe', file: 'models/probe.obj', scale: 0.2 }
+};
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -77,8 +87,8 @@ const init = () => {
     scene = new THREE.Scene();
 
     createSolarSystem();
-
     initTextureSystem();
+    initModelSystem();
 
     // Create a camera
     const fov = 75;
@@ -97,6 +107,7 @@ const init = () => {
     setupMouseControls();
     setupTextureControls();
     setupObjectSelection();
+    setupModelControls();
 
     // Render
     render();
@@ -253,6 +264,7 @@ const updateInfoDisplay = () => {
     document.getElementById('camera-z').textContent = camera.position.z.toFixed(1);
 
     updatePlanetCounter();
+    updateModelCounter();
 };
 
 const updateFPS = () => {
@@ -594,6 +606,13 @@ const updateObjectList = () => {
         }
         objectList.appendChild(option);
     });
+
+    loadedModels.forEach((model, index) => {
+        const option = document.createElement('option');
+        option.value = `model-${index}`;
+        option.textContent = `🚀 ${model.userData.name}`;
+        objectList.appendChild(option);
+    });
 };
 
 const removeTextureFromObject = (objectName) => {
@@ -740,6 +759,193 @@ const updatePlanetCounter = () => {
     }
 };
 
+const updateModelCounter = () => {
+    const modelCountElement = document.getElementById('model-count');
+    if (modelCountElement) {
+        modelCountElement.textContent = loadedModels.length;
+    }
+};
+
+const initModelSystem = () => {
+    if (typeof THREE.OBJLoader !== 'undefined') {
+        modelLoader = new THREE.OBJLoader();
+    }
+
+    updateModelDropdown();
+};
+
+const loadModel = (modelType) => {
+    if (loadedModels.length >= maxModels) {
+        return;
+    }
+
+    const modelInfo = availableModelTypes[modelType];
+    if (!modelInfo) {
+        return;
+    }
+
+    if (!modelLoader) {
+        const fallbackModel = createFallbackModel(modelInfo, modelType);
+        loadedModels.push(fallbackModel);
+        updateObjectList();
+        updateInfoDisplay();
+        return;
+    }
+
+    modelLoader.load(
+        modelInfo.file,
+        // onLoad - sucesso
+        (object) => {
+            const model = setupLoadedModel(object, modelInfo, modelType);
+            loadedModels.push(model);
+            updateObjectList();
+            updateInfoDisplay();
+        },
+        // onProgress
+        undefined,
+        // onError
+        (error) => {
+            const fallbackModel = createFallbackModel(modelInfo, modelType);
+            loadedModels.push(fallbackModel);
+            updateObjectList();
+            updateInfoDisplay();
+        }
+    );
+};
+
+
+const setupLoadedModel = (object, modelInfo, modelType) => {
+
+    object.scale.setScalar(modelInfo.scale);
+
+    const randomX = (Math.random() - 0.5) * 40;
+    const randomY = (Math.random() - 0.5) * 10;
+    const randomZ = (Math.random() - 0.5) * 40;
+
+    object.position.set(randomX, randomY, randomZ);
+
+    object.userData = {
+        name: `${modelInfo.name}-${loadedModels.length + 1}`,
+        type: 'model',
+        modelType: modelType,
+        isStatic: true,
+        rotationSpeed: {
+            x: (Math.random() - 0.5) * 0.01,
+            y: (Math.random() - 0.5) * 0.01,
+            z: (Math.random() - 0.5) * 0.01
+        },
+        originalScale: modelInfo.scale,
+        currentScale: modelInfo.scale
+    };
+
+    object.traverse((child) => {
+        if (child.isMesh) {
+            child.material = new THREE.MeshLambertMaterial({
+                color: 0xaaaaaa,
+                wireframe: false
+            });
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
+
+    scene.add(object);
+    return object;
+};
+
+const createFallbackModel = (modelInfo, modelType) => {
+    let geometry;
+    switch(modelType) {
+        case 'satellite':
+            geometry = new THREE.BoxGeometry(0.5, 0.2, 0.5);
+            break;
+        case 'rocket':
+            geometry = new THREE.ConeGeometry(0.2, 1, 8);
+            break;
+        case 'ship':
+            geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 8);
+            break;
+        default:
+            geometry = new THREE.IcosahedronGeometry(0.3);
+    }
+
+    const material = new THREE.MeshLambertMaterial({
+        color: 0x666666,
+        wireframe: true
+    });
+
+    const model = new THREE.Mesh(geometry, material);
+
+    return setupLoadedModel(model, modelInfo, modelType);
+};
+
+const updateModels = (deltaTime) => {
+    loadedModels.forEach(model => {
+        const userData = model.userData;
+
+        if (userData.rotationSpeed) {
+            model.rotation.x += userData.rotationSpeed.x;
+            model.rotation.y += userData.rotationSpeed.y;
+            model.rotation.z += userData.rotationSpeed.z;
+        }
+
+    });
+};
+
+const setupModelControls = () => {
+    const modelSelect = document.getElementById('model-select');
+    const loadModelBtn = document.getElementById('load-model');
+
+    if (!modelSelect || !loadModelBtn) return;
+
+    loadModelBtn.addEventListener('click', () => {
+        const selectedModel = modelSelect.value;
+
+        if (!selectedModel) {
+            return;
+        }
+
+        loadModel(selectedModel);
+    });
+};
+
+const updateModelDropdown = () => {
+    const modelSelect = document.getElementById('model-select');
+    if (!modelSelect) return;
+
+    modelSelect.innerHTML = '<option value="">Selecionar modelo...</option>';
+
+    Object.entries(availableModelTypes).forEach(([key, info]) => {
+        const option = document.createElement('option');
+        option.value = key;
+
+        const emojis = {
+            satellite: '🛰️',
+            rocket: '🚀',
+            ship: '🏭',
+            asteroid: '🪨',
+            probe: '🚀'
+        };
+
+        option.textContent = `${emojis[key] || '🔧'} ${info.name}`;
+        modelSelect.appendChild(option);
+    });
+};
+
+const generateRandomStaticPosition = () => {
+
+    const minDistance = 18;
+    const maxDistance = 35;
+
+    const angle = Math.random() * Math.PI * 2;
+    const distance = minDistance + Math.random() * (maxDistance - minDistance);
+
+    return {
+        x: Math.cos(angle) * distance,
+        y: (Math.random() - 0.5) * 8,
+        z: Math.sin(angle) * distance
+    };
+};
 
 // The render loop.
 const render = (currentTime = 0) => {
@@ -749,6 +955,7 @@ const render = (currentTime = 0) => {
     if (!isPaused) {
         updateCameraMovement(deltaTime);
         updatePlanets(deltaTime);
+        updateModels(deltaTime);
 
         if(currentObject){
             //  Apply rotation
