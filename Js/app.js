@@ -53,7 +53,7 @@ let selectedObjectType = null;
 let sunLight;
 let skyboxSphere = null;
 let planetLabels = [];
-let labelRenderer;
+let orbitLines = [];
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -159,14 +159,6 @@ const createSun = () => {
     return sun;
 };
 
-const planetData = [
-    { name: "Mercúrio", radius: 0.3, orbitRadius: 4, color: 0x8C7853, speed: 2.0 },
-    { name: "Vénus", radius: 0.4, orbitRadius: 6, color: 0xFFA500, speed: 1.5 },
-    { name: "Terra", radius: 0.5, orbitRadius: 8, color: 0x4169E1, speed: 1.0 },
-    { name: "Marte", radius: 0.4, orbitRadius: 10, color: 0xFF4500, speed: 0.8 },
-    { name: "Júpiter", radius: 1.2, orbitRadius: 14, color: 0xD2691E, speed: 0.5 }
-];
-
 const createPlanet = (planetInfo) => {
     const geometry = new THREE.SphereGeometry(planetInfo.radius, 32, 32);
     const material = new THREE.MeshLambertMaterial({ color: planetInfo.color });
@@ -174,17 +166,19 @@ const createPlanet = (planetInfo) => {
 
     planet.userData = {
         name: planetInfo.name,
-        orbitRadius: planetInfo.orbitRadius,
+        semiMajorAxis: planetInfo.semiMajorAxis,
+        eccentricity: planetInfo.eccentricity,
+        inclination: planetInfo.inclination * Math.PI / 180,
         orbitSpeed: planetInfo.speed,
         angle: Math.random() * Math.PI * 2,
         rotationSpeed: Math.random() * 0.02 + 0.01,
         originalColor: planetInfo.color,
-        currentTexture: null
+        currentTexture: null,
+        orbitRadius: planetInfo.semiMajorAxis
     };
 
-    // Initial position
-    planet.position.x = Math.cos(planet.userData.angle) * planetInfo.orbitRadius;
-    planet.position.z = Math.sin(planet.userData.angle) * planetInfo.orbitRadius;
+    const position = calculateEllipticalPosition(planet.userData);
+    planet.position.set(position.x, position.y, position.z);
 
     planet.castShadow = true;
     planet.receiveShadow = true;
@@ -193,6 +187,22 @@ const createPlanet = (planetInfo) => {
     planets.push(planet);
 
     return planet;
+};
+
+const calculateEllipticalPosition = (userData) => {
+    const { semiMajorAxis, eccentricity, angle, inclination } = userData;
+
+    const semiMinorAxis = semiMajorAxis * Math.sqrt(1 - eccentricity * eccentricity);
+
+    const x = semiMajorAxis * Math.cos(angle);
+    const z = semiMinorAxis * Math.sin(angle);
+
+    const inclinationRad = inclination || 0;
+    const xFinal = x * Math.cos(inclinationRad);
+    const yFinal = x * Math.sin(inclinationRad);
+    const zFinal = z;
+
+    return { x: xFinal, y: yFinal, z: zFinal };
 };
 
 const createSolarSystem = () => {
@@ -207,6 +217,7 @@ const createSolarSystem = () => {
         createPlanetLabel(planet);
     });
 
+    createOrbitVisualization();
 
 };
 
@@ -404,8 +415,8 @@ const updatePlanets = (deltaTime) => {
 
         userData.angle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
 
-        planet.position.x = Math.cos(userData.angle) * userData.orbitRadius;
-        planet.position.z = Math.sin(userData.angle) * userData.orbitRadius;
+        const position = calculateEllipticalPosition(userData);
+        planet.position.set(position.x, position.y, position.z);
 
         planet.rotation.y += userData.rotationSpeed;
     });
@@ -735,7 +746,7 @@ const calculateNextOrbitRadius = () => {
         return 4;
     }
 
-    const maxCurrentRadius = Math.max(...planets.map(p => p.userData.orbitRadius));
+    const maxCurrentRadius = Math.max(...planets.map(p => p.userData.semiMajorAxis || p.userData.orbitRadius));
 
     return maxCurrentRadius + 3;
 };
@@ -767,9 +778,12 @@ const generateRandomPlanetData = (orbitRadius, customName = null) => {
     return {
         name: finalName,
         radius: 0.3 + Math.random() * 0.8,
+        semiMajorAxis: orbitRadius,
+        eccentricity: Math.random() * 0.3,
         orbitRadius: orbitRadius,
         color: planetColors[Math.floor(Math.random() * planetColors.length)],
-        speed: 0.3 + Math.random() * 1.5
+        speed: 0.3 + Math.random() * 1.5,
+        inclination: Math.random() * 10
     };
 };
 
@@ -813,7 +827,7 @@ const updatePlanetCounter = () => {
     const maxOrbitElement = document.getElementById('max-orbit');
     if (maxOrbitElement) {
         if (planets.length > 0) {
-            const maxOrbit = Math.max(...planets.map(p => p.userData.orbitRadius));
+            const maxOrbit = Math.max(...planets.map(p => p.userData.semiMajorAxis || p.userData.orbitRadius));
             maxOrbitElement.textContent = maxOrbit.toFixed(1);
         } else {
             maxOrbitElement.textContent = '0.0';
@@ -1351,6 +1365,100 @@ const clearAllLabels = () => {
     planetLabels = [];
 };
 
+const planetData = [
+    {
+        name: "Mercúrio",
+        radius: 0.3,
+        semiMajorAxis: 4,
+        eccentricity: 0.2,
+        color: 0x8C7853,
+        speed: 2.0,
+        inclination: 0
+    },
+    {
+        name: "Vénus",
+        radius: 0.4,
+        semiMajorAxis: 6,
+        eccentricity: 0.01,
+        color: 0xFFA500,
+        speed: 1.5,
+        inclination: 3.4
+    },
+    {
+        name: "Terra",
+        radius: 0.5,
+        semiMajorAxis: 8,
+        eccentricity: 0.017,
+        color: 0x4169E1,
+        speed: 1.0,
+        inclination: 0
+    },
+    {
+        name: "Marte",
+        radius: 0.4,
+        semiMajorAxis: 10,
+        eccentricity: 0.09,
+        color: 0xFF4500,
+        speed: 0.8,
+        inclination: 1.85
+    },
+    {
+        name: "Júpiter",
+        radius: 1.2,
+        semiMajorAxis: 14,
+        eccentricity: 0.05,
+        color: 0xD2691E,
+        speed: 0.5,
+        inclination: 1.3
+    }
+];
+
+const createOrbitVisualization = () => {
+    planetData.forEach((data, index) => {
+        const points = [];
+        const segments = 100;
+
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const tempUserData = {
+                semiMajorAxis: data.semiMajorAxis,
+                eccentricity: data.eccentricity,
+                inclination: data.inclination * Math.PI / 180,
+                angle: angle
+            };
+
+            const position = calculateEllipticalPosition(tempUserData);
+            points.push(new THREE.Vector3(position.x, position.y, position.z));
+        }
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+        const material = new THREE.LineBasicMaterial({
+            color: 0x00aaff,
+            transparent: true,
+            opacity: 0.6
+        });
+
+        const orbitLine = new THREE.Line(geometry, material);
+        orbitLine.name = `orbit-${data.name}`;
+        orbitLine.userData = {
+            baseOpacity: 0.6,
+            pulseSpeed: 1 + Math.random() * 2
+        };
+
+        scene.add(orbitLine);
+        orbitLines.push(orbitLine); // Armazenar para animação
+    });
+};
+
+// Adicionar esta função para animar as órbitas
+const updateOrbitLines = (currentTime) => {
+    orbitLines.forEach(line => {
+        const userData = line.userData;
+        const pulse = Math.sin(currentTime * userData.pulseSpeed * 0.001) * 0.3 + 0.7;
+        line.material.opacity = userData.baseOpacity * pulse;
+    });
+};
 
 // The render loop.
 const render = (currentTime = 0) => {
@@ -1362,6 +1470,7 @@ const render = (currentTime = 0) => {
         updatePlanets(deltaTime);
         updateModels(deltaTime);
         updateSkybox();
+        updateOrbitLines(currentTime);
 
         if(currentObject){
             //  Apply rotation
