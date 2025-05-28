@@ -284,6 +284,8 @@ const setupUIControls = () => {
     document.getElementById('remove-object').addEventListener('click', removePlanet);
 
     updateInfoDisplay();
+
+    setupMoonControls();
 };
 
 const updateInfoDisplay = () => {
@@ -521,7 +523,7 @@ const applyDefaultTextures = () => {
         if (textureName && availableTextures[textureName]) {
             applyTextureToPlanet(planet, textureName);
         } else {
-            // Fallback para textura aleatória se não houver mapeamento
+
             const randomTexture = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
             if (availableTextures[randomTexture]) {
                 applyTextureToPlanet(planet, randomTexture);
@@ -662,6 +664,15 @@ const updateObjectList = () => {
             option.textContent += ` (${planet.userData.currentTexture})`;
         }
         objectList.appendChild(option);
+
+        if (planet.userData.moons && planet.userData.moons.length > 0) {
+            planet.userData.moons.forEach((moon, moonIndex) => {
+                const moonOption = document.createElement('option');
+                moonOption.value = `moon-${index}-${moonIndex}`;
+                moonOption.textContent = `🌙 ${moon.userData.name} (${planet.userData.name})`;
+                objectList.appendChild(moonOption);
+            });
+        }
     });
 
     loadedModels.forEach((model, index) => {
@@ -815,7 +826,37 @@ const removePlanet = () => {
     const objectList = document.getElementById('object-list');
     const selectedObject = objectList.value;
 
-    if (!selectedObject || !selectedObject.startsWith('planet-')) {
+    if (!selectedObject) {
+        alert('Selecione um objeto para remover.');
+        return;
+    }
+
+    if (selectedObject.startsWith('moon-')) {
+        const parts = selectedObject.split('-');
+        const planetIndex = parseInt(parts[1]);
+        const moonIndex = parseInt(parts[2]);
+
+        const planet = planets[planetIndex];
+        const moon = planet.userData.moons[moonIndex];
+
+        const confirmRemoval = confirm(`Remover lua "${moon.userData.name}" do planeta "${planet.userData.name}"?`);
+        if (!confirmRemoval) return;
+
+        const success = removeMoonFromPlanet(planetIndex, moonIndex);
+        if (success) {
+            updateObjectList();
+            updateInfoDisplay();
+            objectList.value = '';
+
+            const parentSelect = document.getElementById('parent-planet-select');
+            if (parentSelect) {
+                setupMoonControls();
+            }
+        }
+        return;
+    }
+
+    if (!selectedObject.startsWith('planet-')) {
         alert('Selecione um planeta para remover.');
         return;
     }
@@ -830,8 +871,15 @@ const removePlanet = () => {
     const confirmRemoval = confirm(`Remover planeta "${planet.userData.name}"?`);
     if (!confirmRemoval) return;
 
-    removePlanetLabel(planet);
 
+    if (planet.userData.moons && planet.userData.moons.length > 0) {
+        planet.userData.moons.forEach(moon => {
+            scene.remove(moon);
+        });
+        planet.userData.moons = [];
+    }
+
+    removePlanetLabel(planet);
     scene.remove(planet);
     planets.splice(planetIndex, 1);
 
@@ -839,6 +887,7 @@ const removePlanet = () => {
     updateInfoDisplay();
     objectList.value = '';
 };
+
 
 
 const updatePlanetCounter = () => {
@@ -1470,11 +1519,11 @@ const createOrbitVisualization = () => {
         };
 
         scene.add(orbitLine);
-        orbitLines.push(orbitLine); // Armazenar para animação
+        orbitLines.push(orbitLine);
     });
 };
 
-// Adicionar esta função para animar as órbitas
+
 const updateOrbitLines = (currentTime) => {
     orbitLines.forEach(line => {
         const userData = line.userData;
@@ -1482,6 +1531,204 @@ const updateOrbitLines = (currentTime) => {
         line.material.opacity = userData.baseOpacity * pulse;
     });
 };
+
+
+const createMoon = (name, size, orbitRadius, orbitSpeed, textureName, parentPlanet) => {
+    const geometry = new THREE.SphereGeometry(size, 16, 16);
+
+    let material;
+    if (textureName && availableTextures[textureName]) {
+        material = new THREE.MeshLambertMaterial({ map: availableTextures[textureName] });
+    } else {
+        material = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+    }
+
+    const moon = new THREE.Mesh(geometry, material);
+
+    moon.userData = {
+        name: name,
+        type: 'moon',
+        parentPlanet: parentPlanet,
+        orbitRadius: orbitRadius,
+        orbitSpeed: orbitSpeed,
+        orbitAngle: Math.random() * Math.PI * 2,
+        rotationSpeed: Math.random() * 0.02 + 0.01,
+        originalColor: 0xcccccc,
+        currentTexture: textureName
+    };
+
+    moon.castShadow = true;
+    moon.receiveShadow = true;
+
+    scene.add(moon);
+
+    return moon;
+};
+
+
+const addMoonToPlanet = (planetIndex, moonName, moonSize = 0.3, textureName = 'moon') => {
+    if (planetIndex < 0 || planetIndex >= planets.length) {
+        return false;
+    }
+
+    const planet = planets[planetIndex];
+
+    if (!planet.userData.moons) {
+        planet.userData.moons = [];
+    }
+
+    if (planet.userData.moons.length >= 3) {
+        return false;
+    }
+
+    const planetRadius = planet.geometry.parameters.radius * planet.scale.x;
+    const baseRadius = planetRadius * 2.5;
+    const orbitRadius = baseRadius + (planet.userData.moons.length * planetRadius);
+
+    const orbitSpeed = 1 + Math.random() * 2;
+
+    const moon = createMoon(moonName, moonSize, orbitRadius, orbitSpeed, textureName, planet);
+
+    planet.userData.moons.push(moon);
+
+    return true;
+};
+
+
+const removeMoonFromPlanet = (planetIndex, moonIndex) => {
+    if (planetIndex < 0 || planetIndex >= planets.length) return false;
+
+    const planet = planets[planetIndex];
+    if (!planet.userData.moons || moonIndex < 0 || moonIndex >= planet.userData.moons.length) {
+        return false;
+    }
+
+    const moon = planet.userData.moons[moonIndex];
+    scene.remove(moon);
+    planet.userData.moons.splice(moonIndex, 1);
+
+    updateObjectList();
+    return true;
+};
+
+
+const updateMoons = (deltaTime) => {
+    planets.forEach(planet => {
+        if (!planet.userData.moons) return;
+
+        planet.userData.moons.forEach(moon => {
+            const userData = moon.userData;
+            const parentPlanet = userData.parentPlanet;
+
+            userData.orbitAngle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
+
+            const x = Math.cos(userData.orbitAngle) * userData.orbitRadius;
+            const z = Math.sin(userData.orbitAngle) * userData.orbitRadius;
+
+            moon.position.set(
+                parentPlanet.position.x + x,
+                parentPlanet.position.y,
+                parentPlanet.position.z + z
+            );
+
+            moon.rotation.y += userData.rotationSpeed;
+        });
+    });
+};
+
+
+const setupMoonControls = () => {
+    const parentPlanetSelect = document.getElementById('parent-planet-select');
+    const moonSizeSlider = document.getElementById('moon-size');
+    const addMoonBtn = document.getElementById('add-moon-btn');
+    const removeMoonSelect = document.getElementById('moon-to-remove');
+    const removeMoonBtn = document.getElementById('remove-moon-btn');
+
+
+    const updateParentPlanetDropdown = () => {
+        parentPlanetSelect.innerHTML = '<option value="">Selecionar planeta...</option>';
+        planets.forEach((planet, index) => {
+            const moonCount = planet.userData.moons ? planet.userData.moons.length : 0;
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `${planet.userData.name} (${moonCount}/3 luas)`;
+            parentPlanetSelect.appendChild(option);
+        });
+    };
+
+    const updateMoonRemovalDropdown = () => {
+        if (!removeMoonSelect) return;
+
+        removeMoonSelect.innerHTML = '<option value="">Selecionar lua...</option>';
+
+        planets.forEach((planet, planetIndex) => {
+            if (planet.userData.moons && planet.userData.moons.length > 0) {
+                planet.userData.moons.forEach((moon, moonIndex) => {
+                    const option = document.createElement('option');
+                    option.value = `${planetIndex}-${moonIndex}`;
+                    option.textContent = `${moon.userData.name} (${planet.userData.name})`;
+                    removeMoonSelect.appendChild(option);
+                });
+            }
+        });
+    };
+
+    if (moonSizeSlider) {
+        moonSizeSlider.addEventListener('input', (e) => {
+            document.getElementById('moon-size-display').textContent = e.target.value;
+        });
+    }
+
+    if (addMoonBtn) {
+        addMoonBtn.addEventListener('click', () => {
+            const planetIndex = parseInt(parentPlanetSelect.value);
+            const moonName = document.getElementById('moon-name').value.trim();
+            const moonSize = parseFloat(moonSizeSlider.value);
+
+            if (isNaN(planetIndex) || !moonName) {
+                return;
+            }
+
+            const success = addMoonToPlanet(planetIndex, moonName, moonSize, 'moon');
+            if (success) {
+                document.getElementById('moon-name').value = '';
+                updateParentPlanetDropdown();
+                updateMoonRemovalDropdown();
+                updateObjectList();
+            }
+        });
+    }
+
+    if (removeMoonBtn) {
+        removeMoonBtn.addEventListener('click', () => {
+            const selectedValue = removeMoonSelect.value;
+
+            if (!selectedValue) {
+                return;
+            }
+
+            const [planetIndex, moonIndex] = selectedValue.split('-').map(Number);
+            const planet = planets[planetIndex];
+            const moon = planet.userData.moons[moonIndex];
+
+            const confirmRemoval = confirm(`Remover lua "${moon.userData.name}" do planeta "${planet.userData.name}"?`);
+            if (!confirmRemoval) return;
+
+            const success = removeMoonFromPlanet(planetIndex, moonIndex);
+            if (success) {
+                updateParentPlanetDropdown();
+                updateMoonRemovalDropdown();
+                updateObjectList();
+                removeMoonSelect.value = '';
+            }
+        });
+    }
+
+    updateParentPlanetDropdown();
+    updateMoonRemovalDropdown();
+};
+
+
 
 // The render loop.
 const render = (currentTime = 0) => {
@@ -1491,6 +1738,7 @@ const render = (currentTime = 0) => {
     if (!isPaused) {
         updateCameraMovement(deltaTime);
         updatePlanets(deltaTime);
+        updateMoons(deltaTime);
         updateModels(deltaTime);
         updateSkybox();
         updateOrbitLines(currentTime);

@@ -384,6 +384,41 @@
                         Coloque os modelos na pasta 'models/'
                     </div>
                 </div>
+
+                <div class="control-group">
+                    <h3>Sistema de Luas</h3>
+
+                    <label for="parent-planet-select">Planeta pai:</label>
+                    <select id="parent-planet-select" class="margin_bottom">
+                        <option value="">Selecionar planeta...</option>
+                    </select>
+
+                    <label for="moon-name">Nome da lua:</label>
+                    <input type="text" id="moon-name" placeholder="Ex: Luna" class="margin_bottom">
+
+                    <label for="moon-size">Tamanho da lua:</label>
+                    <input type="range" id="moon-size" min="0.1" max="1.0" value="0.3" step="0.1">
+                    <div style="text-align: center; margin: 5px 0;">
+                        <span id="moon-size-display">0.3</span>
+                    </div>
+
+                    <button id="add-moon-btn">Adicionar Lua</button><br><br>
+
+                    <div class="control-group">
+                        <h4>Remover Lua</h4>
+
+                        <label for="moon-to-remove">Lua a remover:</label>
+                        <select id="moon-to-remove" class="margin_bottom">
+                            <option value="">Selecionar lua...</option>
+                        </select>
+
+                        <button id="remove-moon-btn">Remover Lua Selecionada</button>
+                    </div>
+
+                    <div class="help-text">
+                        Máximo de 3 luas por planeta
+                    </div>
+                </div>
             </div>
 
             <div class="tab-content" id="editor-tab">
