@@ -52,6 +52,8 @@ let selectedObject = null;
 let selectedObjectType = null;
 let sunLight;
 let skyboxSphere = null;
+let planetLabels = [];
+let labelRenderer;
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -197,8 +199,14 @@ const createSolarSystem = () => {
     // Create Sol
     sun = createSun();
 
+    initLabelsContainer();
+
     // Create planets
-    planetData.forEach(data => createPlanet(data));
+    planetData.forEach(data => {
+        const planet = createPlanet(data);
+        createPlanetLabel(planet);
+    });
+
 
 };
 
@@ -683,14 +691,34 @@ const setupObjectSelection = () => {
 
 const addPlanet = () => {
     if (planets.length >= maxPlanets) {
+        alert('Máximo de planetas atingido (10)');
+        return;
+    }
+
+    // Pedir nome personalizado ao utilizador
+    const planetName = prompt('Insira o nome do novo planeta:', `Planeta-${planets.length + 1}`);
+
+    // Se o utilizador cancelar ou inserir nome vazio
+    if (!planetName || planetName.trim() === '') {
+        return;
+    }
+
+    // Verificar se o nome já existe
+    const nameExists = planets.some(planet =>
+        planet.userData.name.toLowerCase() === planetName.trim().toLowerCase()
+    );
+
+    if (nameExists) {
+        alert('Já existe um planeta com esse nome. Escolha outro nome.');
         return;
     }
 
     const nextOrbitRadius = calculateNextOrbitRadius();
-
-    const newPlanetData = generateRandomPlanetData(nextOrbitRadius);
-
+    const newPlanetData = generateRandomPlanetData(nextOrbitRadius, planetName.trim());
     const newPlanet = createPlanet(newPlanetData);
+
+    // Criar label para o planeta
+    createPlanetLabel(newPlanet);
 
     const randomTexture = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
     if (availableTextures[randomTexture]) {
@@ -699,8 +727,8 @@ const addPlanet = () => {
 
     updateObjectList();
     updateInfoDisplay();
-
 };
+
 
 const calculateNextOrbitRadius = () => {
     if (planets.length === 0) {
@@ -712,7 +740,7 @@ const calculateNextOrbitRadius = () => {
     return maxCurrentRadius + 3;
 };
 
-const generateRandomPlanetData = (orbitRadius) => {
+const generateRandomPlanetData = (orbitRadius, customName = null) => {
     const planetNames = [
         "Kepler-442b", "HD 40307g", "Gliese 667Cc", "Kepler-438b",
         "Wolf 1061c", "Proxima Centauri b", "Trappist-1e", "LHS 1140b",
@@ -724,25 +752,34 @@ const generateRandomPlanetData = (orbitRadius) => {
         0xFF6347, 0x20B2AA, 0xDDA0DD, 0xF0E68C, 0x87CEEB
     ];
 
-    const usedNames = planets.map(p => p.userData.name);
-    const availableNames = planetNames.filter(name => !usedNames.includes(name));
+    // Usar nome personalizado se fornecido, senão usar nome automático
+    let finalName;
+    if (customName) {
+        finalName = customName;
+    } else {
+        const usedNames = planets.map(p => p.userData.name);
+        const availableNames = planetNames.filter(name => !usedNames.includes(name));
+        finalName = availableNames.length > 0 ?
+            availableNames[Math.floor(Math.random() * availableNames.length)] :
+            `Planeta-${planets.length + 1}`;
+    }
 
     return {
-        name: availableNames.length > 0 ?
-            availableNames[Math.floor(Math.random() * availableNames.length)] :
-            `Planeta-${planets.length + 1}`,
-        radius: 0.3 + Math.random() * 0.8, // Entre 0.3 e 1.1
+        name: finalName,
+        radius: 0.3 + Math.random() * 0.8,
         orbitRadius: orbitRadius,
         color: planetColors[Math.floor(Math.random() * planetColors.length)],
-        speed: 0.3 + Math.random() * 1.5 // Entre 0.3 e 1.8
+        speed: 0.3 + Math.random() * 1.5
     };
 };
+
 
 const removePlanet = () => {
     const objectList = document.getElementById('object-list');
     const selectedObject = objectList.value;
 
     if (!selectedObject || !selectedObject.startsWith('planet-')) {
+        alert('Selecione um planeta para remover.');
         return;
     }
 
@@ -756,15 +793,16 @@ const removePlanet = () => {
     const confirmRemoval = confirm(`Remover planeta "${planet.userData.name}"?`);
     if (!confirmRemoval) return;
 
-    scene.remove(planet);
+    removePlanetLabel(planet);
 
+    scene.remove(planet);
     planets.splice(planetIndex, 1);
 
     updateObjectList();
     updateInfoDisplay();
-
     objectList.value = '';
 };
+
 
 const updatePlanetCounter = () => {
     const planetCountElement = document.getElementById('planet-count');
@@ -1206,6 +1244,113 @@ const updateSkybox = () => {
     }
 };
 
+const initLabelsContainer = () => {
+    labelsContainer = document.getElementById('planet-labels-container');
+    if (!labelsContainer) {
+        console.error('Container de labels não encontrado');
+        return false;
+    }
+    return true;
+};
+
+
+const createPlanetLabel = (planet) => {
+    if (!labelsContainer) {
+        console.warn('Container de labels não inicializado');
+        return null;
+    }
+
+    const labelElement = document.createElement('div');
+    labelElement.className = 'planet-label';
+    labelElement.textContent = planet.userData.name;
+    labelElement.id = `label-${planet.userData.name.replace(/\s+/g, '-')}`;
+
+    labelsContainer.appendChild(labelElement);
+
+    const labelData = {
+        element: labelElement,
+        planet: planet,
+        visible: true
+    };
+
+    planetLabels.push(labelData);
+    console.log(`Label criado para planeta: ${planet.userData.name}`);
+
+    return labelData;
+};
+
+const worldToScreen = (worldPosition, camera, canvas) => {
+    const vector = worldPosition.clone();
+    vector.project(camera);
+
+    const screenX = (vector.x + 1) * canvas.width / 2;
+    const screenY = (-vector.y + 1) * canvas.height / 2;
+    const screenZ = vector.z;
+
+    return {
+        x: screenX,
+        y: screenY,
+        z: screenZ,
+        inFront: screenZ < 1 && screenZ > -1
+    };
+};
+
+
+const updatePlanetLabels = () => {
+    if (!labelsContainer || !camera) return;
+
+    planetLabels.forEach(labelData => {
+        const planet = labelData.planet;
+        const labelElement = labelData.element;
+
+        const planetWorldPosition = new THREE.Vector3();
+        planet.getWorldPosition(planetWorldPosition);
+
+        const labelPosition = planetWorldPosition.clone();
+        labelPosition.y += planet.geometry.parameters.radius + 0.5;
+
+        const screenPos = worldToScreen(labelPosition, camera, canvas);
+
+        const isVisible = screenPos.inFront &&
+            screenPos.x >= 0 && screenPos.x <= canvas.width &&
+            screenPos.y >= 0 && screenPos.y <= canvas.height;
+
+        if (isVisible) {
+            labelElement.style.left = `${screenPos.x}px`;
+            labelElement.style.top = `${screenPos.y}px`;
+            labelElement.classList.remove('hidden');
+        } else {
+            labelElement.classList.add('hidden');
+        }
+    });
+};
+
+
+const removePlanetLabel = (planet) => {
+    const labelIndex = planetLabels.findIndex(label => label.planet === planet);
+
+    if (labelIndex !== -1) {
+        const labelData = planetLabels[labelIndex];
+
+        if (labelData.element && labelData.element.parentNode) {
+            labelData.element.parentNode.removeChild(labelData.element);
+        }
+
+        planetLabels.splice(labelIndex, 1);
+
+        console.log(`Label removido para planeta: ${planet.userData.name}`);
+    }
+};
+
+const clearAllLabels = () => {
+    planetLabels.forEach(labelData => {
+        if (labelData.element && labelData.element.parentNode) {
+            labelData.element.parentNode.removeChild(labelData.element);
+        }
+    });
+    planetLabels = [];
+};
+
 
 // The render loop.
 const render = (currentTime = 0) => {
@@ -1226,6 +1371,8 @@ const render = (currentTime = 0) => {
 
     updateInfoDisplay();
     updateFPS();
+
+    updatePlanetLabels();
 
     // Draw the scene
     renderer.render(scene, camera);
