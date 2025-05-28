@@ -36,7 +36,7 @@ let textureLoader;
 let availableTextures = {};
 let texturesLoaded = 0;
 let totalTextures = 0;
-const PLANET_TEXTURES = ['earth', 'mars', 'jupiter', 'moon'];
+const PLANET_TEXTURES = ['earth', 'mars', 'jupiter', 'mercury','moon', 'neptune', 'venus'];
 const SUN_TEXTURE = 'sun';
 let loadedModels = [];
 let maxModels = 5;
@@ -430,7 +430,10 @@ const initTextureSystem = () => {
         mars: 'textures/mars.jpg',
         jupiter: 'textures/jupiter.jpg',
         moon: 'textures/moon.jpg',
-        sun: 'textures/sun.jpg'
+        sun: 'textures/sun.jpg',
+        mercury: 'textures/mercury.jpg',
+        neptune: 'textures/neptune.jpg',
+        venus: 'textures/venus.jpg',
     };
 
     totalTextures = Object.keys(textureFiles).length;
@@ -483,7 +486,10 @@ const createFallbackTexture = (name) => {
         mars: '#CD5C5C',
         jupiter: '#D2691E',
         moon: '#C0C0C0',
-        sun: '#FFD700'
+        sun: '#FFD700',
+        mercury: '#bfc7c1',
+        neptune: '#5e99db',
+        venus: '#ed802d'
     };
 
     ctx.fillStyle = colors[name] || '#808080';
@@ -500,12 +506,26 @@ const onAllTexturesLoaded = () => {
 
 const applyDefaultTextures = () => {
 
-    planets.forEach((planet, index) => {
-        const textureIndex = index % PLANET_TEXTURES.length;
-        const textureName = PLANET_TEXTURES[textureIndex];
+    const planetTextureMap = {
+        "Mercúrio": "mercury",
+        "Vénus": "venus",
+        "Terra": "earth",
+        "Marte": "mars",
+        "Júpiter": "jupiter"
+    };
 
-        if (availableTextures[textureName]) {
+    planets.forEach((planet) => {
+        const planetName = planet.userData.name;
+        const textureName = planetTextureMap[planetName];
+
+        if (textureName && availableTextures[textureName]) {
             applyTextureToPlanet(planet, textureName);
+        } else {
+            // Fallback para textura aleatória se não houver mapeamento
+            const randomTexture = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
+            if (availableTextures[randomTexture]) {
+                applyTextureToPlanet(planet, randomTexture);
+            }
         }
     });
 
@@ -571,8 +591,11 @@ const updateTextureDropdown = () => {
             const emojis = {
                 earth: '🌍',
                 mars: '🔴',
-                jupiter: '🟠',
-                moon: '🌙'
+                jupiter: '🌑',
+                moon: '🌙',
+                mercury: '⚪',
+                neptune: '🔵',
+                venus: '🟠'
             };
 
             option.textContent = `${emojis[textureName] || '🪐'} ${textureName.charAt(0).toUpperCase() + textureName.slice(1)}`;
