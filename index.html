@@ -402,23 +402,52 @@
                         <span id="moon-size-display">0.3</span>
                     </div>
 
-                    <button id="add-moon-btn">Adicionar Lua</button><br><br>
-
-                    <div class="control-group">
-                        <h4>Remover Lua</h4>
-
-                        <label for="moon-to-remove">Lua a remover:</label>
-                        <select id="moon-to-remove" class="margin_bottom">
-                            <option value="">Selecionar lua...</option>
-                        </select>
-
-                        <button id="remove-moon-btn">Remover Lua Selecionada</button>
-                    </div>
+                    <button id="add-moon-btn">Adicionar Lua</button>
 
                     <div class="help-text">
                         Máximo de 3 luas por planeta
                     </div>
                 </div>
+
+                <div class="control-group">
+                    <h3>Sistema de Cometas</h3>
+
+                    <label for="comet-name">Nome do cometa:</label>
+                    <input type="text" id="comet-name" placeholder="Ex: Halley" class="margin_bottom">
+
+                    <label for="comet-orbit-radius">Raio orbital:</label>
+                    <input type="range" id="comet-orbit-radius" min="20" max="60" value="25" step="2">
+                    <div style="text-align: center; margin: 5px 0;">
+                        <span id="comet-orbit-radius-display">25</span>
+                    </div>
+
+                    <label for="comet-speed">Velocidade orbital:</label>
+                    <input type="range" id="comet-speed" min="0.1" max="2.0" value="0.5" step="0.1">
+                    <div style="text-align: center; margin: 5px 0;">
+                        <span id="comet-speed-display">0.5</span>
+                    </div>
+
+                    <label for="comet-color">Cor da luz:</label>
+                    <input type="color" id="comet-color" value="#00ffff" class="margin_bottom">
+
+                    <label for="comet-intensity">Intensidade da luz:</label>
+                    <input type="range" id="comet-intensity" min="0.5" max="3.0" value="1.0" step="0.1">
+                    <div style="text-align: center; margin: 5px 0;">
+                        <span id="comet-intensity-display">1.0</span>
+                    </div>
+
+                    <button id="add-comet-btn">Adicionar Cometa</button>
+                    <button id="random-comet-btn" class="warning-btn">Cometa Aleatório</button>
+
+                    <div style="margin: 10px 0;">
+                        Cometas: <span id="comet-count">0</span>/5
+                    </div>
+
+                    <div class="help-text">
+                        Os cometas têm órbitas mais distantes e emitem luz própria
+                    </div>
+                </div>
+
             </div>
 
             <div class="tab-content" id="editor-tab">

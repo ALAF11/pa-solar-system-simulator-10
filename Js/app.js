@@ -54,6 +54,8 @@ let sunLight;
 let skyboxSphere = null;
 let planetLabels = [];
 let orbitLines = [];
+let comets = [];
+let maxComets = 5;
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
@@ -286,6 +288,7 @@ const setupUIControls = () => {
     updateInfoDisplay();
 
     setupMoonControls();
+    setupCometControls();
 };
 
 const updateInfoDisplay = () => {
@@ -297,6 +300,7 @@ const updateInfoDisplay = () => {
 
     updatePlanetCounter();
     updateModelCounter();
+    updateCometCounter();
 };
 
 const updateFPS = () => {
@@ -675,6 +679,14 @@ const updateObjectList = () => {
         }
     });
 
+    comets.forEach((comet, index) => {
+        const option = document.createElement('option');
+        option.value = `comet-${index}`;
+        option.textContent = `☄️ ${comet.userData.name}`;
+        objectList.appendChild(option);
+    });
+
+
     loadedModels.forEach((model, index) => {
         const option = document.createElement('option');
         option.value = `model-${index}`;
@@ -828,6 +840,22 @@ const removePlanet = () => {
 
     if (!selectedObject) {
         alert('Selecione um objeto para remover.');
+        return;
+    }
+
+    if (selectedObject.startsWith('comet-')) {
+        const cometIndex = parseInt(selectedObject.split('-')[1]);
+        const comet = comets[cometIndex];
+
+        const confirmRemoval = confirm(`Remover cometa "${comet.userData.name}"?`);
+        if (!confirmRemoval) return;
+
+        const success = removeComet(cometIndex);
+        if (success) {
+            updateObjectList();
+            updateInfoDisplay();
+            objectList.value = '';
+        }
         return;
     }
 
@@ -1728,7 +1756,235 @@ const setupMoonControls = () => {
     updateMoonRemovalDropdown();
 };
 
+const createComet = (name, orbitRadius, orbitSpeed, lightColor = 0x00ffff, lightIntensity = 1, lightDistance = 20) => {
+    // Geometria visual do cometa (núcleo pequeno)
+    const cometGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+    const cometMaterial = new THREE.MeshBasicMaterial({
+        color: lightColor,
+        emissive: lightColor,
+        emissiveIntensity: 0.3
+    });
 
+    const cometMesh = new THREE.Mesh(cometGeometry, cometMaterial);
+
+    // Luz do cometa
+    const cometLight = new THREE.PointLight(lightColor, lightIntensity, lightDistance);
+    cometLight.castShadow = true;
+
+    // Grupo para conter mesh e luz
+    const cometGroup = new THREE.Group();
+    cometGroup.add(cometMesh);
+    cometGroup.add(cometLight);
+
+    // Dados do cometa
+    cometGroup.userData = {
+        name: name,
+        type: 'comet',
+        orbitRadius: orbitRadius,
+        orbitSpeed: orbitSpeed,
+        orbitAngle: Math.random() * Math.PI * 2, // Posição inicial aleatória
+        lightColor: lightColor,
+        lightIntensity: lightIntensity,
+        lightDistance: lightDistance,
+        mesh: cometMesh,
+        light: cometLight,
+        originalColor: lightColor
+    };
+
+    // Posição inicial
+    const x = Math.cos(cometGroup.userData.orbitAngle) * orbitRadius;
+    const z = Math.sin(cometGroup.userData.orbitAngle) * orbitRadius;
+    cometGroup.position.set(x, 0, z);
+
+    scene.add(cometGroup);
+    comets.push(cometGroup);
+
+    return cometGroup;
+};
+
+const addComet = (cometName, orbitRadius, orbitSpeed, colorHex = '#00ffff', intensity = 1, distance = 20) => {
+    if (comets.length >= maxComets) {
+        alert(`Máximo de ${maxComets} cometas atingido`);
+        return false;
+    }
+
+    // Verificar se o nome já existe
+    const nameExists = comets.some(comet =>
+        comet.userData.name.toLowerCase() === cometName.toLowerCase()
+    );
+
+    if (nameExists) {
+        alert('Já existe um cometa com esse nome');
+        return false;
+    }
+
+    // Converter cor hex para number
+    const lightColor = parseInt(colorHex.replace('#', ''), 16);
+
+    const comet = createComet(cometName, orbitRadius, orbitSpeed, lightColor, intensity, distance);
+
+    updateObjectList();
+    updateInfoDisplay();
+
+    console.log(`Cometa ${cometName} adicionado ao sistema`);
+    return true;
+};
+
+const removeComet = (cometIndex) => {
+    if (cometIndex < 0 || cometIndex >= comets.length) {
+        return false;
+    }
+
+    const comet = comets[cometIndex];
+    scene.remove(comet);
+    comets.splice(cometIndex, 1);
+
+    updateObjectList();
+    updateInfoDisplay();
+
+    return true;
+};
+
+
+const updateComets = (deltaTime) => {
+    comets.forEach(comet => {
+        const userData = comet.userData;
+
+        // Atualizar ângulo orbital
+        userData.orbitAngle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
+
+        // Calcular nova posição
+        const x = Math.cos(userData.orbitAngle) * userData.orbitRadius;
+        const z = Math.sin(userData.orbitAngle) * userData.orbitRadius;
+
+        comet.position.set(x, 0, z);
+
+        // Pulsação da luz (efeito visual)
+        const pulseIntensity = userData.lightIntensity * (0.8 + 0.4 * Math.sin(Date.now() * 0.005));
+        userData.light.intensity = pulseIntensity;
+    });
+};
+
+const calculateNextCometOrbitRadius = () => {
+    // Cometas têm órbitas mais excêntricas e distantes
+    const minCometRadius = 20; // Distância mínima dos planetas
+
+    if (comets.length === 0) {
+        return minCometRadius;
+    }
+
+    const maxCurrentRadius = Math.max(...comets.map(c => c.userData.orbitRadius));
+    return maxCurrentRadius + 8; // Espaçamento maior para cometas
+};
+
+const generateRandomCometData = (customName = null) => {
+    const cometNames = [
+        "Halley", "Hale-Bopp", "Encke", "Biela", "Swift-Tuttle",
+        "Tempel-Tuttle", "Hyakutake", "McNaught", "Lovejoy", "NEOWISE"
+    ];
+
+    const cometColors = [
+        '#00ffff', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24',
+        '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894', '#fdcb6e'
+    ];
+
+    // Nome do cometa
+    let finalName;
+    if (customName) {
+        finalName = customName;
+    } else {
+        const usedNames = comets.map(c => c.userData.name);
+        const availableNames = cometNames.filter(name => !usedNames.includes(name));
+        finalName = availableNames.length > 0 ?
+            availableNames[Math.floor(Math.random() * availableNames.length)] :
+            `Cometa-${comets.length + 1}`;
+    }
+
+    return {
+        name: finalName,
+        orbitRadius: calculateNextCometOrbitRadius(),
+        orbitSpeed: 0.2 + Math.random() * 0.8, // Velocidade mais lenta
+        color: cometColors[Math.floor(Math.random() * cometColors.length)],
+        intensity: 0.5 + Math.random() * 1.5,
+        distance: 15 + Math.random() * 15
+    };
+};
+
+const setupCometControls = () => {
+    const cometOrbitRadiusSlider = document.getElementById('comet-orbit-radius');
+    const cometSpeedSlider = document.getElementById('comet-speed');
+    const cometIntensitySlider = document.getElementById('comet-intensity');
+    const addCometBtn = document.getElementById('add-comet-btn');
+    const randomCometBtn = document.getElementById('random-comet-btn');
+
+    // Event listeners para sliders
+    if (cometOrbitRadiusSlider) {
+        cometOrbitRadiusSlider.addEventListener('input', (e) => {
+            document.getElementById('comet-orbit-radius-display').textContent = e.target.value;
+        });
+    }
+
+    if (cometSpeedSlider) {
+        cometSpeedSlider.addEventListener('input', (e) => {
+            document.getElementById('comet-speed-display').textContent = e.target.value;
+        });
+    }
+
+    if (cometIntensitySlider) {
+        cometIntensitySlider.addEventListener('input', (e) => {
+            document.getElementById('comet-intensity-display').textContent = e.target.value;
+        });
+    }
+
+    // Botão adicionar cometa
+    if (addCometBtn) {
+        addCometBtn.addEventListener('click', () => {
+            const cometName = document.getElementById('comet-name').value.trim();
+            const orbitRadius = parseFloat(cometOrbitRadiusSlider.value);
+            const orbitSpeed = parseFloat(cometSpeedSlider.value);
+            const color = document.getElementById('comet-color').value;
+            const intensity = parseFloat(cometIntensitySlider.value);
+
+            if (!cometName) {
+                alert('Digite um nome para o cometa');
+                return;
+            }
+
+            const success = addComet(cometName, orbitRadius, orbitSpeed, color, intensity, 25);
+            if (success) {
+                document.getElementById('comet-name').value = '';
+                updateCometCounter();
+            }
+        });
+    }
+
+    // Botão cometa aleatório
+    if (randomCometBtn) {
+        randomCometBtn.addEventListener('click', () => {
+            const cometData = generateRandomCometData();
+            const success = addComet(
+                cometData.name,
+                cometData.orbitRadius,
+                cometData.orbitSpeed,
+                cometData.color,
+                cometData.intensity,
+                cometData.distance
+            );
+
+            if (success) {
+                updateCometCounter();
+            }
+        });
+    }
+};
+
+
+const updateCometCounter = () => {
+    const cometCountElement = document.getElementById('comet-count');
+    if (cometCountElement) {
+        cometCountElement.textContent = comets.length;
+    }
+};
 
 // The render loop.
 const render = (currentTime = 0) => {
@@ -1739,6 +1995,7 @@ const render = (currentTime = 0) => {
         updateCameraMovement(deltaTime);
         updatePlanets(deltaTime);
         updateMoons(deltaTime);
+        updateComets(deltaTime);
         updateModels(deltaTime);
         updateSkybox();
         updateOrbitLines(currentTime);
