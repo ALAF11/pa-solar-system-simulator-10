@@ -72,6 +72,7 @@ Um simulador interativo do sistema solar em 3D desenvolvido com Three.js, que pe
 **Para o Sol:**
 - **Intensidade da Luz**: Brilho da iluminação
 - **Cor da Luz**: Tonalidade da luz solar
+  
 
-- Clicar em **"Aplicar Mudanças"**
-- **"Reset Objeto"** para restaurar valores originais
+Clicar em **"Aplicar Mudanças"**
+**"Reset Objeto"** para restaurar valores originais
