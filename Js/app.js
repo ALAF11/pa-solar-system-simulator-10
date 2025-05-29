@@ -131,7 +131,6 @@ const init = () => {
 
 //Create a sun.
 const createSun = () => {
-    // Remove objeto atual se existir
     if (currentObject) {
         scene.remove(currentObject);
     }
@@ -146,8 +145,8 @@ const createSun = () => {
 
     //light
     const sunMaterial = new THREE.MeshBasicMaterial({
-        color: 0xFFD700, // Dourado
-        emissive: 0xFFAA00 // Emissão de luz laranja
+        color: 0xFFD700,
+        emissive: 0xFFAA00
     });
 
     // create mesh
@@ -1720,22 +1719,6 @@ const createOrbitLine = (planet) => {
     return orbitLine;
 };
 
-const createCircularOrbitFromPosition = (planet, currentX, currentZ) => {
-    const orbitRadius = Math.sqrt(currentX * currentX + currentZ * currentZ);
-    const currentAngle = Math.atan2(currentZ, currentX);
-
-    // Atualizar dados orbitais para órbita circular
-    planet.userData.semiMajorAxis = orbitRadius;
-    planet.userData.orbitRadius = orbitRadius;
-    planet.userData.angle = currentAngle;
-    planet.userData.eccentricity = 0.05; // Órbita quase circular
-    planet.userData.inclination = 0; // Sem inclinação
-
-    return {
-        radius: orbitRadius,
-        angle: currentAngle
-    };
-};
 
 const removeOrbitLine = (planet) => {
     const orbitIndex = orbitLines.findIndex(line =>
@@ -2110,7 +2093,6 @@ const setupCometControls = () => {
     const addCometBtn = document.getElementById('add-comet-btn');
     const randomCometBtn = document.getElementById('random-comet-btn');
 
-    // Event listeners para sliders
     if (cometOrbitRadiusSlider) {
         cometOrbitRadiusSlider.addEventListener('input', (e) => {
             document.getElementById('comet-orbit-radius-display').textContent = e.target.value;
