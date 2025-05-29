@@ -422,6 +422,11 @@ const updatePlanets = (deltaTime) => {
     planets.forEach(planet => {
         const userData = planet.userData;
 
+        if (userData.manualPosition) {
+            planet.rotation.y += userData.rotationSpeed;
+            return;
+        }
+
         userData.angle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
 
         const position = calculateEllipticalPosition(userData);
@@ -1231,6 +1236,15 @@ const loadPlanetControls = () => {
 
     document.getElementById('rotation-z').value = Math.round(rotationZ);
     document.getElementById('rotation-z-display').textContent = Math.round(rotationZ) + '°';
+
+    document.getElementById('position-x').value = selectedObject.position.x.toFixed(1);
+    document.getElementById('position-x-display').textContent = selectedObject.position.x.toFixed(1);
+
+    document.getElementById('position-y').value = selectedObject.position.y.toFixed(1);
+    document.getElementById('position-y-display').textContent = selectedObject.position.y.toFixed(1);
+
+    document.getElementById('position-z').value = selectedObject.position.z.toFixed(1);
+    document.getElementById('position-z-display').textContent = selectedObject.position.z.toFixed(1);
 };
 
 const loadSunControls = () => {
@@ -1250,6 +1264,9 @@ const setupEditorControls = () => {
     const rotationXSlider = document.getElementById('rotation-x');
     const rotationYSlider = document.getElementById('rotation-y');
     const rotationZSlider = document.getElementById('rotation-z');
+    const positionXSlider = document.getElementById('position-x');
+    const positionYSlider = document.getElementById('position-y');
+    const positionZSlider = document.getElementById('position-z');
 
     const sunIntensitySlider = document.getElementById('sun-intensity');
     const sunColorPicker = document.getElementById('sun-color');
@@ -1284,6 +1301,24 @@ const setupEditorControls = () => {
         });
     }
 
+    if (positionXSlider) {
+        positionXSlider.addEventListener('input', (e) => {
+            document.getElementById('position-x-display').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+
+    if (positionYSlider) {
+        positionYSlider.addEventListener('input', (e) => {
+            document.getElementById('position-y-display').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+
+    if (positionZSlider) {
+        positionZSlider.addEventListener('input', (e) => {
+            document.getElementById('position-z-display').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+
     if (sunIntensitySlider) {
         sunIntensitySlider.addEventListener('input', (e) => {
             document.getElementById('sun-intensity-display').textContent = parseFloat(e.target.value).toFixed(1);
@@ -1298,6 +1333,16 @@ const setupEditorControls = () => {
     const resetBtn = document.getElementById('reset-object');
     if (resetBtn) {
         resetBtn.addEventListener('click', resetSelectedObject);
+    }
+
+    const restoreOrbitBtn = document.getElementById('restore-orbit');
+    if (restoreOrbitBtn) {
+        restoreOrbitBtn.addEventListener('click', () => {
+            if (selectedObject && selectedObjectType === 'planet') {
+                selectedObject.userData.manualPosition = false;
+                console.log(`Órbita automática restaurada para: ${selectedObject.userData.name}`);
+            }
+        });
     }
 };
 
@@ -1317,6 +1362,14 @@ const applyObjectChanges = () => {
         const rotZ = parseFloat(document.getElementById('rotation-z').value) * Math.PI / 180;
 
         selectedObject.rotation.set(rotX, rotY, rotZ);
+
+        const posX = parseFloat(document.getElementById('position-x').value);
+        const posY = parseFloat(document.getElementById('position-y').value);
+        const posZ = parseFloat(document.getElementById('position-z').value);
+
+        selectedObject.position.set(posX, posY, posZ);
+
+        selectedObject.userData.manualPosition = true;
 
     } else if (selectedObjectType === 'sun' && sunLight) {
 
@@ -1815,7 +1868,7 @@ const setupMoonControls = () => {
 };
 
 const createComet = (name, orbitRadius, orbitSpeed, lightColor = 0x00ffff, lightIntensity = 1, lightDistance = 20) => {
-    // Geometria visual do cometa (núcleo pequeno)
+
     const cometGeometry = new THREE.SphereGeometry(0.1, 8, 8);
     const cometMaterial = new THREE.MeshBasicMaterial({
         color: lightColor,
@@ -1825,22 +1878,22 @@ const createComet = (name, orbitRadius, orbitSpeed, lightColor = 0x00ffff, light
 
     const cometMesh = new THREE.Mesh(cometGeometry, cometMaterial);
 
-    // Luz do cometa
+
     const cometLight = new THREE.PointLight(lightColor, lightIntensity, lightDistance);
     cometLight.castShadow = true;
 
-    // Grupo para conter mesh e luz
+
     const cometGroup = new THREE.Group();
     cometGroup.add(cometMesh);
     cometGroup.add(cometLight);
 
-    // Dados do cometa
+
     cometGroup.userData = {
         name: name,
         type: 'comet',
         orbitRadius: orbitRadius,
         orbitSpeed: orbitSpeed,
-        orbitAngle: Math.random() * Math.PI * 2, // Posição inicial aleatória
+        orbitAngle: Math.random() * Math.PI * 2,
         lightColor: lightColor,
         lightIntensity: lightIntensity,
         lightDistance: lightDistance,
@@ -1849,7 +1902,6 @@ const createComet = (name, orbitRadius, orbitSpeed, lightColor = 0x00ffff, light
         originalColor: lightColor
     };
 
-    // Posição inicial
     const x = Math.cos(cometGroup.userData.orbitAngle) * orbitRadius;
     const z = Math.sin(cometGroup.userData.orbitAngle) * orbitRadius;
     cometGroup.position.set(x, 0, z);
@@ -1866,7 +1918,6 @@ const addComet = (cometName, orbitRadius, orbitSpeed, colorHex = '#00ffff', inte
         return false;
     }
 
-    // Verificar se o nome já existe
     const nameExists = comets.some(comet =>
         comet.userData.name.toLowerCase() === cometName.toLowerCase()
     );
@@ -1876,7 +1927,6 @@ const addComet = (cometName, orbitRadius, orbitSpeed, colorHex = '#00ffff', inte
         return false;
     }
 
-    // Converter cor hex para number
     const lightColor = parseInt(colorHex.replace('#', ''), 16);
 
     const comet = createComet(cometName, orbitRadius, orbitSpeed, lightColor, intensity, distance);
@@ -1908,31 +1958,28 @@ const updateComets = (deltaTime) => {
     comets.forEach(comet => {
         const userData = comet.userData;
 
-        // Atualizar ângulo orbital
         userData.orbitAngle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
 
-        // Calcular nova posição
         const x = Math.cos(userData.orbitAngle) * userData.orbitRadius;
         const z = Math.sin(userData.orbitAngle) * userData.orbitRadius;
 
         comet.position.set(x, 0, z);
 
-        // Pulsação da luz (efeito visual)
         const pulseIntensity = userData.lightIntensity * (0.8 + 0.4 * Math.sin(Date.now() * 0.005));
         userData.light.intensity = pulseIntensity;
     });
 };
 
 const calculateNextCometOrbitRadius = () => {
-    // Cometas têm órbitas mais excêntricas e distantes
-    const minCometRadius = 20; // Distância mínima dos planetas
+
+    const minCometRadius = 20;
 
     if (comets.length === 0) {
         return minCometRadius;
     }
 
     const maxCurrentRadius = Math.max(...comets.map(c => c.userData.orbitRadius));
-    return maxCurrentRadius + 8; // Espaçamento maior para cometas
+    return maxCurrentRadius + 8;
 };
 
 const generateRandomCometData = (customName = null) => {
@@ -1946,7 +1993,6 @@ const generateRandomCometData = (customName = null) => {
         '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894', '#fdcb6e'
     ];
 
-    // Nome do cometa
     let finalName;
     if (customName) {
         finalName = customName;
@@ -1961,7 +2007,7 @@ const generateRandomCometData = (customName = null) => {
     return {
         name: finalName,
         orbitRadius: calculateNextCometOrbitRadius(),
-        orbitSpeed: 0.2 + Math.random() * 0.8, // Velocidade mais lenta
+        orbitSpeed: 0.2 + Math.random() * 0.8,
         color: cometColors[Math.floor(Math.random() * cometColors.length)],
         intensity: 0.5 + Math.random() * 1.5,
         distance: 15 + Math.random() * 15
@@ -1994,7 +2040,6 @@ const setupCometControls = () => {
         });
     }
 
-    // Botão adicionar cometa
     if (addCometBtn) {
         addCometBtn.addEventListener('click', () => {
             const cometName = document.getElementById('comet-name').value.trim();
@@ -2016,7 +2061,6 @@ const setupCometControls = () => {
         });
     }
 
-    // Botão cometa aleatório
     if (randomCometBtn) {
         randomCometBtn.addEventListener('click', () => {
             const cometData = generateRandomCometData();
