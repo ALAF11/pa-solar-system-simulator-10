@@ -75,4 +75,5 @@ Um simulador interativo do sistema solar em 3D desenvolvido com Three.js, que pe
   
 
 Clicar em **"Aplicar Mudanças"**
+
 **"Reset Objeto"** para restaurar valores originais
