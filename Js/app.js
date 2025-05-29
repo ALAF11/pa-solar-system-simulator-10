@@ -842,7 +842,33 @@ const removePlanet = () => {
     const selectedObject = objectList.value;
 
     if (!selectedObject) {
-        alert('Selecione um objeto para remover.');
+        return;
+    }
+
+    if (selectedObject.startsWith('model-')) {
+        const modelIndex = parseInt(selectedObject.split('-')[1]);
+        const model = loadedModels[modelIndex];
+
+        if (!model) {
+            return;
+        }
+
+        const confirmRemoval = confirm(`Remover modelo "${model.userData.name}"?`);
+        if (!confirmRemoval) return;
+
+        // Remover da cena
+        scene.remove(model);
+
+        // Remover do array
+        loadedModels.splice(modelIndex, 1);
+
+        // Atualizar interface
+        updateObjectList();
+        updateInfoDisplay();
+        updateModelCounter();
+        objectList.value = '';
+
+        console.log(`Modelo ${model.userData.name} removido com sucesso`);
         return;
     }
 
