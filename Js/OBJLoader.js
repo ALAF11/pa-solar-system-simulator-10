@@ -14,7 +14,7 @@ import {
 	Vector3,
 	Color,
 	SRGBColorSpace
-} from 'three';
+} from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 // o object_name | g group_name
 const _object_pattern = /^[og]\s*(.+)?/;
@@ -953,3 +953,4 @@ class OBJLoader extends Loader {
 }
 
 export { OBJLoader };
+THREE.OBJLoader = OBJLoader;

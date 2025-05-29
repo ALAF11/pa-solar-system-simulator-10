@@ -1,4 +1,6 @@
 // On loading the page, run the init function
+import {OBJLoader} from "./OBJLoader.js";
+
 window.onload = () => init();
 
 //Global variables
@@ -56,6 +58,7 @@ let planetLabels = [];
 let orbitLines = [];
 let comets = [];
 let maxComets = 5;
+let labelsContainer;
 
 // Sets listeners for the mouse position
 document.getElementById("gl-canvas").onmousemove = function (event) {
