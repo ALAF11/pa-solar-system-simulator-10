@@ -422,15 +422,12 @@ const updatePlanets = (deltaTime) => {
     planets.forEach(planet => {
         const userData = planet.userData;
 
-        if (userData.manualPosition) {
-            planet.rotation.y += userData.rotationSpeed;
-            return;
+        if (!userData.manualPosition) {
+            userData.angle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
+
+            const position = calculateEllipticalPosition(userData);
+            planet.position.set(position.x, position.y, position.z);
         }
-
-        userData.angle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
-
-        const position = calculateEllipticalPosition(userData);
-        planet.position.set(position.x, position.y, position.z);
 
         planet.rotation.y += userData.rotationSpeed;
     });
@@ -1334,16 +1331,6 @@ const setupEditorControls = () => {
     if (resetBtn) {
         resetBtn.addEventListener('click', resetSelectedObject);
     }
-
-    const restoreOrbitBtn = document.getElementById('restore-orbit');
-    if (restoreOrbitBtn) {
-        restoreOrbitBtn.addEventListener('click', () => {
-            if (selectedObject && selectedObjectType === 'planet') {
-                selectedObject.userData.manualPosition = false;
-                console.log(`Órbita automática restaurada para: ${selectedObject.userData.name}`);
-            }
-        });
-    }
 };
 
 const applyObjectChanges = () => {
@@ -1367,20 +1354,40 @@ const applyObjectChanges = () => {
         const posY = parseFloat(document.getElementById('position-y').value);
         const posZ = parseFloat(document.getElementById('position-z').value);
 
+        const distanceFromCenter = Math.sqrt(posX * posX + posZ * posZ);
+        if (distanceFromCenter < 2) {
+            alert('Posição muito próxima do centro! Mínimo de 2 unidades de distância.');
+            return;
+        }
+
+        const newOrbitRadius = Math.sqrt(posX * posX + posZ * posZ);
+        const newAngle = Math.atan2(posZ, posX);
+
+        selectedObject.userData.semiMajorAxis = newOrbitRadius;
+        selectedObject.userData.orbitRadius = newOrbitRadius;
+        selectedObject.userData.angle = newAngle;
+        selectedObject.userData.eccentricity = 0.1;
+        selectedObject.userData.inclination = 0;
+
         selectedObject.position.set(posX, posY, posZ);
 
-        selectedObject.userData.manualPosition = true;
+        removeOrbitLine(selectedObject);
+        const newOrbitLine = createOrbitLine(selectedObject);
+        orbitLines.push(newOrbitLine);
+
+        selectedObject.userData.manualPosition = false;
+
+        console.log(`Nova órbita criada para ${selectedObject.userData.name} com raio ${newOrbitRadius.toFixed(2)}`);
 
     } else if (selectedObjectType === 'sun' && sunLight) {
-
         const newIntensity = parseFloat(document.getElementById('sun-intensity').value);
         sunLight.intensity = newIntensity;
 
         const newColor = document.getElementById('sun-color').value;
         sunLight.color.setHex(parseInt(newColor.replace('#', ''), 16));
-
     }
 };
+
 
 const resetSelectedObject = () => {
     if (!selectedObject) return;
@@ -1647,6 +1654,22 @@ const createOrbitLine = (planet) => {
     return orbitLine;
 };
 
+const createCircularOrbitFromPosition = (planet, currentX, currentZ) => {
+    const orbitRadius = Math.sqrt(currentX * currentX + currentZ * currentZ);
+    const currentAngle = Math.atan2(currentZ, currentX);
+
+    // Atualizar dados orbitais para órbita circular
+    planet.userData.semiMajorAxis = orbitRadius;
+    planet.userData.orbitRadius = orbitRadius;
+    planet.userData.angle = currentAngle;
+    planet.userData.eccentricity = 0.05; // Órbita quase circular
+    planet.userData.inclination = 0; // Sem inclinação
+
+    return {
+        radius: orbitRadius,
+        angle: currentAngle
+    };
+};
 
 const removeOrbitLine = (planet) => {
     const orbitIndex = orbitLines.findIndex(line =>
