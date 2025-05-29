@@ -44,7 +44,7 @@ let modelLoader;
 let availableModelTypes = {
     satellite: { name: 'satellite', file: 'models/Satellite.obj', scale: 0.5 },
     rocket: { name: 'rocket', file: 'models/rocket.obj', scale: 0.5 },
-    ship: { name: 'spacial ship', file: 'models/space_ship.obj', scale: 0.8 },
+    spaceman: { name: 'spaceman', file: 'models/spaceman.obj', scale: 0.5 },
     asteroid: { name: 'asteroid', file: 'models/asteroid.obj', scale: 0.4 },
     probe: { name: 'probe', file: 'models/probe.obj', scale: 0.2 }
 };
@@ -943,11 +943,16 @@ const updateModelCounter = () => {
 };
 
 const initModelSystem = () => {
-    if (typeof THREE.OBJLoader !== 'undefined') {
-        modelLoader = new THREE.OBJLoader();
-    }
 
-    updateModelDropdown();
+    setTimeout(() => {
+        if (window.THREE && window.THREE.OBJLoader) {
+            modelLoader = new THREE.OBJLoader();
+            console.log('OBJLoader inicializado com sucesso');
+        } else {
+            console.warn('OBJLoader não disponível - usando fallbacks');
+        }
+        updateModelDropdown();
+    }, 100);
 };
 
 const loadModel = (modelType) => {
@@ -1038,7 +1043,7 @@ const createFallbackModel = (modelInfo, modelType) => {
         case 'rocket':
             geometry = new THREE.ConeGeometry(0.2, 1, 8);
             break;
-        case 'ship':
+        case 'spaceman':
             geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 8);
             break;
         default:
@@ -1098,7 +1103,7 @@ const updateModelDropdown = () => {
         const emojis = {
             satellite: '🛰️',
             rocket: '🚀',
-            ship: '🏭',
+            spaceman: '🏭',
             asteroid: '🪨',
             probe: '🚀'
         };
