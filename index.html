@@ -342,6 +342,14 @@
                         <option value="">Selecionar objeto...</option>
                     </select>
 
+                    <label for="new-planet-name" class="margin_bottom">Nome do Planeta que pretende adicionar:</label>
+                    <input type="text" id="new-planet-name" placeholder="Ex: Kepler-442b" class="margin_bottom">
+
+                    <label for="new-planet-texture" class="margin_bottom">Textura do Planeta que pretende adicionar:</label>
+                    <select id="new-planet-texture" class="margin_bottom">
+                        <option value="random">Textura Aleatória</option>
+                    </select>
+
                     <div class="button-group">
                         <button id="add-planet">Adicionar Planeta</button>
                         <button id="remove-object" class="danger-btn">Remover</button>
@@ -393,7 +401,7 @@
                         <option value="">Selecionar planeta...</option>
                     </select>
 
-                    <label for="moon-name">Nome da lua:</label>
+                    <label for="moon-name" class="margin_bottom">Nome da lua:</label>
                     <input type="text" id="moon-name" placeholder="Ex: Luna" class="margin_bottom">
 
                     <label for="moon-size">Tamanho da lua:</label>
@@ -412,7 +420,7 @@
                 <div class="control-group">
                     <h3>Sistema de Cometas</h3>
 
-                    <label for="comet-name">Nome do cometa:</label>
+                    <label for="comet-name" class="margin_bottom">Nome do cometa:</label>
                     <input type="text" id="comet-name" placeholder="Ex: Halley" class="margin_bottom">
 
                     <label for="comet-orbit-radius">Raio orbital:</label>
@@ -427,7 +435,7 @@
                         <span id="comet-speed-display">0.5</span>
                     </div>
 
-                    <label for="comet-color">Cor da luz:</label>
+                    <label for="comet-color" class="margin_bottom">Cor da luz:</label>
                     <input type="color" id="comet-color" value="#00ffff" class="margin_bottom">
 
                     <label for="comet-intensity">Intensidade da luz:</label>

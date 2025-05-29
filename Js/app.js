@@ -45,10 +45,10 @@ let maxModels = 5;
 let modelLoader;
 let availableModelTypes = {
     satellite: { name: 'satellite', file: 'models/Satellite.obj', scale: 0.5 },
-    rocket: { name: 'rocket', file: 'models/rocket.obj', scale: 0.5 },
-    spaceman: { name: 'spaceman', file: 'models/spaceman.obj', scale: 0.5 },
-    asteroid: { name: 'asteroid', file: 'models/asteroid.obj', scale: 0.4 },
-    probe: { name: 'probe', file: 'models/probe.obj', scale: 0.2 }
+    rocket: { name: 'rocket', file: 'models/rocket.obj', scale: 3.5 },
+    spaceman: { name: 'spaceman', file: 'models/spaceman.obj', scale: 2.0 },
+    asteroid: { name: 'asteroid', file: 'models/asteroid.obj', scale: 2.0 },
+    probe: { name: 'probe', file: 'models/probe.obj', scale: 0.5 }
 };
 let selectedObject = null;
 let selectedObjectType = null;
@@ -254,6 +254,28 @@ const setupUIControls = () => {
         }
     });
 
+    const planetNameInput = document.getElementById('new-planet-name');
+    const addPlanetBtn = document.getElementById('add-planet');
+
+    if (planetNameInput && addPlanetBtn) {
+        planetNameInput.addEventListener('input', () => {
+            const name = planetNameInput.value.trim();
+            const nameExists = planets.some(planet =>
+                planet.userData.name.toLowerCase() === name.toLowerCase()
+            );
+
+            if (nameExists && name !== '') {
+                planetNameInput.style.borderColor = '#f44336';
+                addPlanetBtn.disabled = true;
+                addPlanetBtn.style.opacity = '0.5';
+            } else {
+                planetNameInput.style.borderColor = '#1e90ff';
+                addPlanetBtn.disabled = false;
+                addPlanetBtn.style.opacity = '1';
+            }
+        });
+    }
+
     // Reset button
     document.getElementById('reset-btn').addEventListener('click', () => {
 
@@ -422,12 +444,11 @@ const updatePlanets = (deltaTime) => {
     planets.forEach(planet => {
         const userData = planet.userData;
 
-        if (!userData.manualPosition) {
-            userData.angle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
+        userData.angle += userData.orbitSpeed * simulationSpeed * deltaTime * (Math.PI / 180);
 
-            const position = calculateEllipticalPosition(userData);
-            planet.position.set(position.x, position.y, position.z);
-        }
+        const position = calculateEllipticalPosition(userData);
+        planet.position.set(position.x, position.y, position.z);
+
 
         planet.rotation.y += userData.rotationSpeed;
     });
@@ -511,6 +532,7 @@ const createFallbackTexture = (name) => {
 
 const onAllTexturesLoaded = () => {
     updateTextureDropdown();
+    updateNewPlanetTextureDropdown();
     applyDefaultTextures();
     updateObjectList();
 };
@@ -593,6 +615,33 @@ const updateTextureDropdown = () => {
     if (!selectedObject || !selectedObject.startsWith('planet-')) {
         return;
     }
+
+    PLANET_TEXTURES.forEach(textureName => {
+        if (availableTextures[textureName]) {
+            const option = document.createElement('option');
+            option.value = textureName;
+
+            const emojis = {
+                earth: '🌍',
+                mars: '🔴',
+                jupiter: '🌑',
+                moon: '🌙',
+                mercury: '⚪',
+                neptune: '🔵',
+                venus: '🟠'
+            };
+
+            option.textContent = `${emojis[textureName] || '🪐'} ${textureName.charAt(0).toUpperCase() + textureName.slice(1)}`;
+            textureSelect.appendChild(option);
+        }
+    });
+};
+
+const updateNewPlanetTextureDropdown = () => {
+    const textureSelect = document.getElementById('new-planet-texture');
+    if (!textureSelect) return;
+
+    textureSelect.innerHTML = '<option value="random">Textura Aleatória</option>';
 
     PLANET_TEXTURES.forEach(textureName => {
         if (availableTextures[textureName]) {
@@ -757,37 +806,57 @@ const addPlanet = () => {
         return;
     }
 
-    const planetName = prompt('Insira o nome do novo planeta:', `Planeta-${planets.length + 1}`);
+    const planetNameInput = document.getElementById('new-planet-name');
+    const planetTextureSelect = document.getElementById('new-planet-texture');
 
-    if (!planetName || planetName.trim() === '') {
+    const planetName = planetNameInput.value.trim();
+    const selectedTexture = planetTextureSelect.value;
+
+    if (!planetName) {
+        alert('Por favor, insira um nome para o planeta.');
+        planetNameInput.focus();
         return;
     }
 
     const nameExists = planets.some(planet =>
-        planet.userData.name.toLowerCase() === planetName.trim().toLowerCase()
+        planet.userData.name.toLowerCase() === planetName.toLowerCase()
     );
 
     if (nameExists) {
         alert('Já existe um planeta com esse nome. Escolha outro nome.');
+        planetNameInput.focus();
         return;
     }
 
     const nextOrbitRadius = calculateNextOrbitRadius();
-    const newPlanetData = generateRandomPlanetData(nextOrbitRadius, planetName.trim());
+    const newPlanetData = generateRandomPlanetData(nextOrbitRadius, planetName);
     const newPlanet = createPlanet(newPlanetData);
+
     const orbitLine = createOrbitLine(newPlanet);
     orbitLines.push(orbitLine);
 
     createPlanetLabel(newPlanet);
 
-    const randomTexture = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
-    if (availableTextures[randomTexture]) {
-        applyTextureToPlanet(newPlanet, randomTexture);
+    let textureToApply;
+    if (selectedTexture === 'random') {
+        textureToApply = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
+    } else {
+        textureToApply = selectedTexture;
     }
+
+    if (availableTextures[textureToApply]) {
+        applyTextureToPlanet(newPlanet, textureToApply);
+    }
+
+    planetNameInput.value = '';
+    planetTextureSelect.value = 'random';
 
     updateObjectList();
     updateInfoDisplay();
+
+    console.log(`Planeta ${planetName} adicionado com textura ${textureToApply}`);
 };
+
 
 
 const calculateNextOrbitRadius = () => {
@@ -1375,9 +1444,6 @@ const applyObjectChanges = () => {
         const newOrbitLine = createOrbitLine(selectedObject);
         orbitLines.push(newOrbitLine);
 
-        selectedObject.userData.manualPosition = false;
-
-        console.log(`Nova órbita criada para ${selectedObject.userData.name} com raio ${newOrbitRadius.toFixed(2)}`);
 
     } else if (selectedObjectType === 'sun' && sunLight) {
         const newIntensity = parseFloat(document.getElementById('sun-intensity').value);
