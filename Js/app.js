@@ -755,15 +755,12 @@ const addPlanet = () => {
         return;
     }
 
-    // Pedir nome personalizado ao utilizador
     const planetName = prompt('Insira o nome do novo planeta:', `Planeta-${planets.length + 1}`);
 
-    // Se o utilizador cancelar ou inserir nome vazio
     if (!planetName || planetName.trim() === '') {
         return;
     }
 
-    // Verificar se o nome já existe
     const nameExists = planets.some(planet =>
         planet.userData.name.toLowerCase() === planetName.trim().toLowerCase()
     );
@@ -776,8 +773,9 @@ const addPlanet = () => {
     const nextOrbitRadius = calculateNextOrbitRadius();
     const newPlanetData = generateRandomPlanetData(nextOrbitRadius, planetName.trim());
     const newPlanet = createPlanet(newPlanetData);
+    const orbitLine = createOrbitLine(newPlanet);
+    orbitLines.push(orbitLine);
 
-    // Criar label para o planeta
     createPlanetLabel(newPlanet);
 
     const randomTexture = PLANET_TEXTURES[Math.floor(Math.random() * PLANET_TEXTURES.length)];
@@ -812,7 +810,6 @@ const generateRandomPlanetData = (orbitRadius, customName = null) => {
         0xFF6347, 0x20B2AA, 0xDDA0DD, 0xF0E68C, 0x87CEEB
     ];
 
-    // Usar nome personalizado se fornecido, senão usar nome automático
     let finalName;
     if (customName) {
         finalName = customName;
@@ -856,13 +853,10 @@ const removePlanet = () => {
         const confirmRemoval = confirm(`Remover modelo "${model.userData.name}"?`);
         if (!confirmRemoval) return;
 
-        // Remover da cena
         scene.remove(model);
 
-        // Remover do array
         loadedModels.splice(modelIndex, 1);
 
-        // Atualizar interface
         updateObjectList();
         updateInfoDisplay();
         updateModelCounter();
@@ -936,6 +930,7 @@ const removePlanet = () => {
         planet.userData.moons = [];
     }
 
+    removeOrbitLine(planet);
     removePlanetLabel(planet);
     scene.remove(planet);
     planets.splice(planetIndex, 1);
@@ -944,7 +939,6 @@ const removePlanet = () => {
     updateInfoDisplay();
     objectList.value = '';
 };
-
 
 
 const updatePlanetCounter = () => {
@@ -1548,41 +1542,70 @@ const planetData = [
 ];
 
 const createOrbitVisualization = () => {
-    planetData.forEach((data, index) => {
-        const points = [];
-        const segments = 100;
 
-        for (let i = 0; i <= segments; i++) {
-            const angle = (i / segments) * Math.PI * 2;
-            const tempUserData = {
-                semiMajorAxis: data.semiMajorAxis,
-                eccentricity: data.eccentricity,
-                inclination: data.inclination * Math.PI / 180,
-                angle: angle
-            };
+    orbitLines.forEach(line => {
+        scene.remove(line);
+    });
+    orbitLines = [];
 
-            const position = calculateEllipticalPosition(tempUserData);
-            points.push(new THREE.Vector3(position.x, position.y, position.z));
-        }
-
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-        const material = new THREE.LineBasicMaterial({
-            color: 0x00aaff,
-            transparent: true,
-            opacity: 0.6
-        });
-
-        const orbitLine = new THREE.Line(geometry, material);
-        orbitLine.name = `orbit-${data.name}`;
-        orbitLine.userData = {
-            baseOpacity: 0.6,
-            pulseSpeed: 1 + Math.random() * 2
-        };
-
-        scene.add(orbitLine);
+    planets.forEach(planet => {
+        const orbitLine = createOrbitLine(planet);
         orbitLines.push(orbitLine);
     });
+
+    console.log(`${orbitLines.length} linhas de órbita criadas`);
+};
+
+const createOrbitLine = (planet) => {
+    const userData = planet.userData;
+    const points = [];
+    const segments = 100;
+
+    for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        const tempUserData = {
+            semiMajorAxis: userData.semiMajorAxis,
+            eccentricity: userData.eccentricity,
+            inclination: userData.inclination || 0,
+            angle: angle
+        };
+
+        const position = calculateEllipticalPosition(tempUserData);
+        points.push(new THREE.Vector3(position.x, position.y, position.z));
+    }
+
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+    const material = new THREE.LineBasicMaterial({
+        color: 0x00aaff,
+        transparent: true,
+        opacity: 0.6
+    });
+
+    const orbitLine = new THREE.Line(geometry, material);
+    orbitLine.name = `orbit-${userData.name}`;
+    orbitLine.userData = {
+        baseOpacity: 0.6,
+        pulseSpeed: 1 + Math.random() * 2,
+        planetReference: planet
+    };
+
+    scene.add(orbitLine);
+    return orbitLine;
+};
+
+
+const removeOrbitLine = (planet) => {
+    const orbitIndex = orbitLines.findIndex(line =>
+        line.userData.planetReference === planet
+    );
+
+    if (orbitIndex !== -1) {
+        const orbitLine = orbitLines[orbitIndex];
+        scene.remove(orbitLine);
+        orbitLines.splice(orbitIndex, 1);
+        console.log(`Linha de órbita removida para: ${planet.userData.name}`);
+    }
 };
 
 
@@ -1593,6 +1616,7 @@ const updateOrbitLines = (currentTime) => {
         line.material.opacity = userData.baseOpacity * pulse;
     });
 };
+
 
 
 const createMoon = (name, size, orbitRadius, orbitSpeed, textureName, parentPlanet) => {
