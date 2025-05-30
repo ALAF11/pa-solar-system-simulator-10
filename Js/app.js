@@ -81,7 +81,13 @@ document.getElementById("gl-canvas").onwheel = function (event) {
     }
 }
 
-//Initializes the WebGL application
+/**
+ * Initializes the WebGL application and sets up the entire solar system
+ * @function init
+ * @description Sets up renderer, scene, camera, lighting, controls, and begins the render loop
+ * @returns {void}
+ */
+
 const init = () => {
 
     // Get canvas
@@ -129,7 +135,13 @@ const init = () => {
 
 }
 
-//Create a sun.
+/**
+ * Creates and configures the sun object with lighting
+ * @function createSun
+ * @description Creates a sphere geometry sun with emissive material and point light
+ * @returns {THREE.Mesh} The created sun mesh object
+ */
+
 const createSun = () => {
     if (currentObject) {
         scene.remove(currentObject);
@@ -163,6 +175,20 @@ const createSun = () => {
     return sun;
 };
 
+/**
+ * Creates a planet with orbital mechanics and visual properties
+ * @function createPlanet
+ * @param {Object} planetInfo - Configuration object for the planet
+ * @param {string} planetInfo.name - Name of the planet
+ * @param {number} planetInfo.radius - Physical radius of the planet
+ * @param {number} planetInfo.semiMajorAxis - Semi-major axis of elliptical orbit
+ * @param {number} planetInfo.eccentricity - Orbital eccentricity (0-1)
+ * @param {number} planetInfo.inclination - Orbital inclination in degrees
+ * @param {number} planetInfo.speed - Orbital speed multiplier
+ * @param {number} planetInfo.color - Hex color value for the planet
+ * @returns {THREE.Mesh} The created planet mesh object
+ */
+
 const createPlanet = (planetInfo) => {
     const geometry = new THREE.SphereGeometry(planetInfo.radius, 32, 32);
     const material = new THREE.MeshLambertMaterial({ color: planetInfo.color });
@@ -193,6 +219,17 @@ const createPlanet = (planetInfo) => {
     return planet;
 };
 
+/**
+ * Calculates 3D position based on elliptical orbital parameters
+ * @function calculateEllipticalPosition
+ * @param {Object} userData - Object containing orbital parameters
+ * @param {number} userData.semiMajorAxis - Semi-major axis of the orbit
+ * @param {number} userData.eccentricity - Orbital eccentricity
+ * @param {number} userData.angle - Current angle in the orbit (radians)
+ * @param {number} userData.inclination - Orbital inclination (radians)
+ * @returns {Object} Object containing x, y, z coordinates
+ */
+
 const calculateEllipticalPosition = (userData) => {
     const { semiMajorAxis, eccentricity, angle, inclination } = userData;
 
@@ -209,6 +246,13 @@ const calculateEllipticalPosition = (userData) => {
     return { x: xFinal, y: yFinal, z: zFinal };
 };
 
+/**
+ * Creates the complete solar system with sun, planets, and orbital mechanics
+ * @function createSolarSystem
+ * @description Initializes sun, creates all planets from planetData, sets up labels and orbits
+ * @returns {void}
+ */
+
 const createSolarSystem = () => {
     // Create Sol
     sun = createSun();
@@ -224,6 +268,13 @@ const createSolarSystem = () => {
     createOrbitVisualization();
 
 };
+
+/**
+ * Sets up all user interface controls and event listeners
+ * @function setupUIControls
+ * @description Configures sliders, buttons, inputs for simulation control
+ * @returns {void}
+ */
 
 const setupUIControls = () => {
 
@@ -315,6 +366,13 @@ const setupUIControls = () => {
     setupCometControls();
 };
 
+/**
+ * Updates all information displays in the UI
+ * @function updateInfoDisplay
+ * @description Updates scale, object count, camera position, counters
+ * @returns {void}
+ */
+
 const updateInfoDisplay = () => {
     document.getElementById('scale-display').textContent = currentScale.toFixed(1);
     document.getElementById('object-count').textContent = scene.children.length;
@@ -326,6 +384,13 @@ const updateInfoDisplay = () => {
     updateModelCounter();
     updateCometCounter();
 };
+
+/**
+ * Calculates and displays current frames per second
+ * @function updateFPS
+ * @description Measures rendering performance and updates FPS counter
+ * @returns {void}
+ */
 
 const updateFPS = () => {
     frameCount++;
@@ -339,6 +404,13 @@ const updateFPS = () => {
         lastFPSUpdate = now;
     }
 };
+
+/**
+ * Sets up keyboard controls for camera movement
+ * @function setupKeyboardControls
+ * @description Configures WASD + QR key bindings for 3D camera navigation
+ * @returns {void}
+ */
 
 const setupKeyboardControls = () => {
     document.addEventListener('keydown', (event) => {
@@ -394,6 +466,14 @@ const setupKeyboardControls = () => {
     });
 };
 
+/**
+ * Updates camera position based on current movement state
+ * @function updateCameraMovement
+ * @param {number} deltaTime - Time elapsed since last frame in seconds
+ * @description Moves camera based on active keyboard controls
+ * @returns {void}
+ */
+
 const updateCameraMovement = (deltaTime) => {
     const moveDistance = cameraSpeed * deltaTime;
 
@@ -417,6 +497,13 @@ const updateCameraMovement = (deltaTime) => {
     }
 };
 
+/**
+ * Sets up mouse controls for camera rotation
+ * @function setupMouseControls
+ * @description Configures pointer lock and mouse movement for camera look
+ * @returns {void}
+ */
+
 const setupMouseControls = () => {
     canvas.addEventListener('click', () => {
         canvas.requestPointerLock();
@@ -439,6 +526,14 @@ const setupMouseControls = () => {
     });
 };
 
+/**
+ * Updates all planet positions and rotations based on orbital mechanics
+ * @function updatePlanets
+ * @param {number} deltaTime - Time elapsed since last frame in seconds
+ * @description Calculates new positions for all planets based on orbital parameters
+ * @returns {void}
+ */
+
 const updatePlanets = (deltaTime) => {
     planets.forEach(planet => {
         const userData = planet.userData;
@@ -452,6 +547,13 @@ const updatePlanets = (deltaTime) => {
         planet.rotation.y += userData.rotationSpeed;
     });
 };
+
+/**
+ * Initializes the texture loading system
+ * @function initTextureSystem
+ * @description Sets up texture loader and begins loading all required textures
+ * @returns {void}
+ */
 
 const initTextureSystem = () => {
     textureLoader = new THREE.TextureLoader();
@@ -471,6 +573,14 @@ const initTextureSystem = () => {
 
     loadExternalTextures(textureFiles);
 };
+
+/**
+ * Loads textures from external files
+ * @function loadExternalTextures
+ * @param {Object} textureFiles - Object mapping texture names to file paths
+ * @description Asynchronously loads texture files with fallback handling
+ * @returns {void}
+ */
 
 const loadExternalTextures = (textureFiles) => {
     Object.entries(textureFiles).forEach(([name, path]) => {
@@ -506,6 +616,13 @@ const loadExternalTextures = (textureFiles) => {
     });
 };
 
+/**
+ * Creates a fallback texture when loading fails
+ * @function createFallbackTexture
+ * @param {string} name - Name of the texture for color mapping
+ * @returns {THREE.CanvasTexture} Generated fallback texture
+ */
+
 const createFallbackTexture = (name) => {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -529,12 +646,26 @@ const createFallbackTexture = (name) => {
     return new THREE.CanvasTexture(canvas);
 };
 
+/**
+ * Callback function executed when all textures finish loading
+ * @function onAllTexturesLoaded
+ * @description Updates UI dropdowns and applies default textures to objects
+ * @returns {void}
+ */
+
 const onAllTexturesLoaded = () => {
     updateTextureDropdown();
     updateNewPlanetTextureDropdown();
     applyDefaultTextures();
     updateObjectList();
 };
+
+/**
+ * Applies default textures to planets based on their names
+ * @function applyDefaultTextures
+ * @description Maps planet names to appropriate textures and applies them
+ * @returns {void}
+ */
 
 const applyDefaultTextures = () => {
 
@@ -566,6 +697,15 @@ const applyDefaultTextures = () => {
     }
 };
 
+/**
+ * Applies a texture to a planet object
+ * @function applyTextureToPlanet
+ * @param {THREE.Mesh} planet - The planet mesh to apply texture to
+ * @param {string} textureType - Type/name of texture to apply
+ * @description Updates planet material with specified texture
+ * @returns {void}
+ */
+
 const applyTextureToPlanet = (planet, textureType) => {
     if (textureType === SUN_TEXTURE) {
         return;
@@ -589,6 +729,14 @@ const applyTextureToPlanet = (planet, textureType) => {
     updateObjectList();
 };
 
+/**
+ * Applies texture to the sun object
+ * @function applyTextureToSun
+ * @param {THREE.Texture} texture - Texture to apply to the sun
+ * @description Updates sun material with emissive texture
+ * @returns {void}
+ */
+
 const applyTextureToSun = (texture) => {
     if (!sun) return;
 
@@ -600,6 +748,13 @@ const applyTextureToSun = (texture) => {
 
     sun.material = material;
 };
+
+/**
+ * Updates texture dropdown options for selected objects
+ * @function updateTextureDropdown
+ * @description Populates texture selector with available textures for current object
+ * @returns {void}
+ */
 
 const updateTextureDropdown = () => {
     const textureSelect = document.getElementById('texture-select');
@@ -636,6 +791,13 @@ const updateTextureDropdown = () => {
     });
 };
 
+/**
+ * Updates texture dropdown for new planet creation
+ * @function updateNewPlanetTextureDropdown
+ * @description Fills dropdown with texture options for new planets
+ * @returns {void}
+ */
+
 const updateNewPlanetTextureDropdown = () => {
     const textureSelect = document.getElementById('new-planet-texture');
     if (!textureSelect) return;
@@ -662,6 +824,13 @@ const updateNewPlanetTextureDropdown = () => {
         }
     });
 };
+
+/**
+ * Sets up event listeners for texture control elements
+ * @function setupTextureControls
+ * @description Configures texture application controls and event handlers
+ * @returns {void}
+ */
 
 const setupTextureControls = () => {
     const textureSelect = document.getElementById('texture-select');
@@ -699,6 +868,13 @@ const setupTextureControls = () => {
         }
     });
 };
+
+/**
+ * Updates the object list dropdown in the UI
+ * @function updateObjectList
+ * @description Refreshes the list of selectable objects including planets, moons, models
+ * @returns {void}
+ */
 
 const updateObjectList = () => {
     const objectList = document.getElementById('object-list');
@@ -748,6 +924,14 @@ const updateObjectList = () => {
     });
 };
 
+/**
+ * Removes texture from specified object and restores original material
+ * @function removeTextureFromObject
+ * @param {string} objectName - Identifier of the object to remove texture from
+ * @description Restores object to its original color material
+ * @returns {void}
+ */
+
 const removeTextureFromObject = (objectName) => {
     if (!objectName.startsWith('planet-')) {
         return;
@@ -763,6 +947,13 @@ const removeTextureFromObject = (objectName) => {
 
     updateObjectList();
 };
+
+/**
+ * Finds an object by its identifier string
+ * @function findObjectByName
+ * @param {string} objectName - Identifier string for the object
+ * @returns {THREE.Object3D|null} Found object or null if not found
+ */
 
 const findObjectByName = (objectName) => {
 
@@ -783,6 +974,13 @@ const findObjectByName = (objectName) => {
     return null;
 };
 
+/**
+ * Sets up object selection dropdown event handlers
+ * @function setupObjectSelection
+ * @description Configures object list dropdown and updates texture options
+ * @returns {void}
+ */
+
 const setupObjectSelection = () => {
     const objectList = document.getElementById('object-list');
 
@@ -798,6 +996,13 @@ const setupObjectSelection = () => {
         }
     });
 };
+
+/**
+ * Adds a new planet to the solar system
+ * @function addPlanet
+ * @description Creates and adds a new planet with user-specified parameters
+ * @returns {void}
+ */
 
 const addPlanet = () => {
     if (planets.length >= maxPlanets) {
@@ -856,7 +1061,11 @@ const addPlanet = () => {
     console.log(`Planeta ${planetName} adicionado com textura ${textureToApply}`);
 };
 
-
+/**
+ * Calculates the next available orbit radius for new planets
+ * @function calculateNextOrbitRadius
+ * @returns {number} The next suitable orbit radius
+ */
 
 const calculateNextOrbitRadius = () => {
     if (planets.length === 0) {
@@ -867,6 +1076,14 @@ const calculateNextOrbitRadius = () => {
 
     return maxCurrentRadius + 3;
 };
+
+/**
+ * Generates random planet data for new planets
+ * @function generateRandomPlanetData
+ * @param {number} orbitRadius - Orbital radius for the new planet
+ * @param {string|null} customName - Optional custom name for the planet
+ * @returns {Object} Generated planet configuration object
+ */
 
 const generateRandomPlanetData = (orbitRadius, customName = null) => {
     const planetNames = [
@@ -903,6 +1120,12 @@ const generateRandomPlanetData = (orbitRadius, customName = null) => {
     };
 };
 
+/**
+ * Removes a planet from the solar system
+ * @function removePlanet
+ * @description Removes selected planet and all associated elements
+ * @returns {void}
+ */
 
 const removePlanet = () => {
     const objectList = document.getElementById('object-list');
@@ -1010,6 +1233,12 @@ const removePlanet = () => {
     objectList.value = '';
 };
 
+/**
+ * Updates planet counter display in the UI
+ * @function updatePlanetCounter
+ * @description Updates planet count and maximum orbit radius displays
+ * @returns {void}
+ */
 
 const updatePlanetCounter = () => {
     const planetCountElement = document.getElementById('planet-count');
@@ -1028,12 +1257,26 @@ const updatePlanetCounter = () => {
     }
 };
 
+/**
+ * Updates model counter display in the UI
+ * @function updateModelCounter
+ * @description Updates loaded models count display
+ * @returns {void}
+ */
+
 const updateModelCounter = () => {
     const modelCountElement = document.getElementById('model-count');
     if (modelCountElement) {
         modelCountElement.textContent = loadedModels.length;
     }
 };
+
+/**
+ * Initializes the 3D model loading system
+ * @function initModelSystem
+ * @description Sets up OBJ loader and prepares model loading capabilities
+ * @returns {void}
+ */
 
 const initModelSystem = () => {
 
@@ -1047,6 +1290,14 @@ const initModelSystem = () => {
         updateModelDropdown();
     }, 100);
 };
+
+/**
+ * Loads a 3D model from file
+ * @function loadModel
+ * @param {string} modelType - Type of model to load from availableModelTypes
+ * @description Asynchronously loads OBJ models with fallback creation
+ * @returns {void}
+ */
 
 const loadModel = (modelType) => {
     if (loadedModels.length >= maxModels) {
@@ -1087,6 +1338,14 @@ const loadModel = (modelType) => {
     );
 };
 
+/**
+ * Configures a loaded 3D model for the scene
+ * @function setupLoadedModel
+ * @param {THREE.Object3D} object - Loaded model object
+ * @param {Object} modelInfo - Model configuration information
+ * @param {string} modelType - Type identifier for the model
+ * @returns {THREE.Object3D} Configured model object
+ */
 
 const setupLoadedModel = (object, modelInfo, modelType) => {
 
@@ -1127,6 +1386,14 @@ const setupLoadedModel = (object, modelInfo, modelType) => {
     return object;
 };
 
+/**
+ * Creates a fallback model when loading fails
+ * @function createFallbackModel
+ * @param {Object} modelInfo - Model configuration information
+ * @param {string} modelType - Type identifier for fallback creation
+ * @returns {THREE.Object3D} Generated fallback model
+ */
+
 const createFallbackModel = (modelInfo, modelType) => {
     let geometry;
     switch(modelType) {
@@ -1153,6 +1420,14 @@ const createFallbackModel = (modelInfo, modelType) => {
     return setupLoadedModel(model, modelInfo, modelType);
 };
 
+/**
+ * Updates 3D model rotations and animations
+ * @function updateModels
+ * @param {number} deltaTime - Time elapsed since last frame in seconds
+ * @description Applies rotation animations to loaded 3D models
+ * @returns {void}
+ */
+
 const updateModels = (deltaTime) => {
     loadedModels.forEach(model => {
         const userData = model.userData;
@@ -1165,6 +1440,13 @@ const updateModels = (deltaTime) => {
 
     });
 };
+
+/**
+ * Sets up 3D model control interface
+ * @function setupModelControls
+ * @description Configures model selection dropdown and load button
+ * @returns {void}
+ */
 
 const setupModelControls = () => {
     const modelSelect = document.getElementById('model-select');
@@ -1182,6 +1464,13 @@ const setupModelControls = () => {
         loadModel(selectedModel);
     });
 };
+
+/**
+ * Updates model selection dropdown with available model types
+ * @function updateModelDropdown
+ * @description Populates dropdown with available 3D model options
+ * @returns {void}
+ */
 
 const updateModelDropdown = () => {
     const modelSelect = document.getElementById('model-select');
@@ -1221,6 +1510,13 @@ const generateRandomStaticPosition = () => {
     };
 };
 
+/**
+ * Sets up the object property editor interface
+ * @function setupObjectEditor
+ * @description Configures UI for editing selected object properties
+ * @returns {void}
+ */
+
 const setupObjectEditor = () => {
     const objectList = document.getElementById('object-list');
 
@@ -1239,6 +1535,14 @@ const setupObjectEditor = () => {
 
     setupEditorControls();
 };
+
+/**
+ * Shows the object editor for a specific object
+ * @function showObjectEditor
+ * @param {string} objectValue - Identifier of the object to edit
+ * @description Displays appropriate controls for the selected object type
+ * @returns {void}
+ */
 
 const showObjectEditor = (objectValue) => {
     const editor = document.getElementById('object-editor');
@@ -1269,6 +1573,13 @@ const showObjectEditor = (objectValue) => {
     editor.style.display = 'block';
 };
 
+/**
+ * Hides the object editor interface
+ * @function hideObjectEditor
+ * @description Closes object editor and clears selection
+ * @returns {void}
+ */
+
 const hideObjectEditor = () => {
     const editor = document.getElementById('object-editor');
     if (editor) {
@@ -1277,6 +1588,13 @@ const hideObjectEditor = () => {
     selectedObject = null;
     selectedObjectType = null;
 };
+
+/**
+ * Loads planet-specific controls into the editor
+ * @function loadPlanetControls
+ * @description Populates editor with current planet property values
+ * @returns {void}
+ */
 
 const loadPlanetControls = () => {
     if (!selectedObject || selectedObjectType !== 'planet') return;
@@ -1312,6 +1630,13 @@ const loadPlanetControls = () => {
     document.getElementById('position-z-display').textContent = selectedObject.position.z.toFixed(1);
 };
 
+/**
+ * Loads sun-specific controls into the editor
+ * @function loadSunControls
+ * @description Populates editor with current sun property values
+ * @returns {void}
+ */
+
 const loadSunControls = () => {
     if (!selectedObject || selectedObjectType !== 'sun' || !sunLight) return;
 
@@ -1321,6 +1646,13 @@ const loadSunControls = () => {
     const color = sunLight.color.getHex();
     document.getElementById('sun-color').value = '#' + color.toString(16).padStart(6, '0');
 };
+
+/**
+ * Sets up object editor control event listeners
+ * @function setupEditorControls
+ * @description Configures sliders and controls for object property editing
+ * @returns {void}
+ */
 
 const setupEditorControls = () => {
 
@@ -1401,6 +1733,13 @@ const setupEditorControls = () => {
     }
 };
 
+/**
+ * Applies changes made in the object editor
+ * @function applyObjectChanges
+ * @description Updates object properties based on editor values
+ * @returns {void}
+ */
+
 const applyObjectChanges = () => {
     if (!selectedObject) return;
 
@@ -1453,6 +1792,12 @@ const applyObjectChanges = () => {
     }
 };
 
+/**
+ * Resets selected object to default properties
+ * @function resetSelectedObject
+ * @description Restores object to original state
+ * @returns {void}
+ */
 
 const resetSelectedObject = () => {
     if (!selectedObject) return;
@@ -1474,6 +1819,13 @@ const resetSelectedObject = () => {
     }
 };
 
+/**
+ * Sets up the starfield background
+ * @function setupBackground
+ * @description Creates skybox sphere with star texture
+ * @returns {void}
+ */
+
 const setupBackground = () => {
     const loader = new THREE.TextureLoader();
 
@@ -1484,6 +1836,14 @@ const setupBackground = () => {
         }
     );
 };
+
+/**
+ * Creates the skybox sphere for background
+ * @function createSkyboxSphere
+ * @param {THREE.Texture} texture - Texture to apply to skybox
+ * @description Creates large sphere with star texture for background
+ * @returns {void}
+ */
 
 const createSkyboxSphere = (texture) => {
     if (skyboxSphere) {
@@ -1504,12 +1864,25 @@ const createSkyboxSphere = (texture) => {
     scene.add(skyboxSphere);
 };
 
+/**
+ * Updates skybox position to follow camera
+ * @function updateSkybox
+ * @description Keeps skybox centered on camera position
+ * @returns {void}
+ */
+
 const updateSkybox = () => {
     if (skyboxSphere && camera) {
 
         skyboxSphere.position.copy(camera.position);
     }
 };
+
+/**
+ * Initializes the planet label container
+ * @function initLabelsContainer
+ * @returns {boolean} Success status of container initialization
+ */
 
 const initLabelsContainer = () => {
     labelsContainer = document.getElementById('planet-labels-container');
@@ -1520,6 +1893,12 @@ const initLabelsContainer = () => {
     return true;
 };
 
+/**
+ * Creates a 2D label for a planet
+ * @function createPlanetLabel
+ * @param {THREE.Mesh} planet - Planet to create label for
+ * @returns {Object|null} Label data object or null on failure
+ */
 
 const createPlanetLabel = (planet) => {
     if (!labelsContainer) {
@@ -1546,6 +1925,15 @@ const createPlanetLabel = (planet) => {
     return labelData;
 };
 
+/**
+ * Converts 3D world position to 2D screen coordinates
+ * @function worldToScreen
+ * @param {THREE.Vector3} worldPosition - 3D position to convert
+ * @param {THREE.Camera} camera - Camera for projection calculation
+ * @param {HTMLCanvasElement} canvas - Canvas for screen dimensions
+ * @returns {Object} Screen coordinates and visibility information
+ */
+
 const worldToScreen = (worldPosition, camera, canvas) => {
     const vector = worldPosition.clone();
     vector.project(camera);
@@ -1562,6 +1950,12 @@ const worldToScreen = (worldPosition, camera, canvas) => {
     };
 };
 
+/**
+ * Updates all planet label positions and visibility
+ * @function updatePlanetLabels
+ * @description Projects 3D positions to screen coordinates for labels
+ * @returns {void}
+ */
 
 const updatePlanetLabels = () => {
     if (!labelsContainer || !camera) return;
@@ -1592,6 +1986,12 @@ const updatePlanetLabels = () => {
     });
 };
 
+/**
+ * Removes a label for a specific planet
+ * @function removePlanetLabel
+ * @param {THREE.Mesh} planet - Planet whose label should be removed
+ * @returns {void}
+ */
 
 const removePlanetLabel = (planet) => {
     const labelIndex = planetLabels.findIndex(label => label.planet === planet);
@@ -1666,6 +2066,13 @@ const planetData = [
     }
 ];
 
+/**
+ * Creates orbital path visualization lines
+ * @function createOrbitVisualization
+ * @description Generates visible orbital paths for all planets
+ * @returns {void}
+ */
+
 const createOrbitVisualization = () => {
 
     orbitLines.forEach(line => {
@@ -1680,6 +2087,13 @@ const createOrbitVisualization = () => {
 
     console.log(`${orbitLines.length} linhas de órbita criadas`);
 };
+
+/**
+ * Creates an orbit line for a specific planet
+ * @function createOrbitLine
+ * @param {THREE.Mesh} planet - Planet to create orbit line for
+ * @returns {THREE.Line} Created orbit line object
+ */
 
 const createOrbitLine = (planet) => {
     const userData = planet.userData;
@@ -1719,6 +2133,13 @@ const createOrbitLine = (planet) => {
     return orbitLine;
 };
 
+/**
+ * Removes orbital visualization line for a specific planet
+ * @function removeOrbitLine
+ * @param {THREE.Mesh} planet - Planet whose orbit line should be removed
+ * @description Removes orbit line from scene and orbit lines array
+ * @returns {void}
+ */
 
 const removeOrbitLine = (planet) => {
     const orbitIndex = orbitLines.findIndex(line =>
@@ -1733,6 +2154,13 @@ const removeOrbitLine = (planet) => {
     }
 };
 
+/**
+ * Updates orbit line animations and effects
+ * @function updateOrbitLines
+ * @param {number} currentTime - Current timestamp for animations
+ * @description Updates pulsing opacity effects on orbital lines
+ * @returns {void}
+ */
 
 const updateOrbitLines = (currentTime) => {
     orbitLines.forEach(line => {
@@ -1742,7 +2170,17 @@ const updateOrbitLines = (currentTime) => {
     });
 };
 
-
+/**
+ * Creates a moon object with orbital properties
+ * @function createMoon
+ * @param {string} name - Name of the moon
+ * @param {number} size - Physical size/radius of the moon
+ * @param {number} orbitRadius - Distance from parent planet
+ * @param {number} orbitSpeed - Orbital speed around parent planet
+ * @param {string} textureName - Name of texture to apply
+ * @param {THREE.Mesh} parentPlanet - Parent planet object
+ * @returns {THREE.Mesh} Created moon mesh object
+ */
 
 const createMoon = (name, size, orbitRadius, orbitSpeed, textureName, parentPlanet) => {
     const geometry = new THREE.SphereGeometry(size, 16, 16);
@@ -1776,6 +2214,15 @@ const createMoon = (name, size, orbitRadius, orbitSpeed, textureName, parentPlan
     return moon;
 };
 
+/**
+ * Adds a moon to a specific planet
+ * @function addMoonToPlanet
+ * @param {number} planetIndex - Index of the parent planet
+ * @param {string} moonName - Name for the new moon
+ * @param {number} moonSize - Size of the moon (default: 0.3)
+ * @param {string} textureName - Texture to apply (default: 'moon')
+ * @returns {boolean} Success status of moon creation
+ */
 
 const addMoonToPlanet = (planetIndex, moonName, moonSize = 0.3, textureName = 'moon') => {
     if (planetIndex < 0 || planetIndex >= planets.length) {
@@ -1805,6 +2252,13 @@ const addMoonToPlanet = (planetIndex, moonName, moonSize = 0.3, textureName = 'm
     return true;
 };
 
+/**
+ * Removes a moon from its parent planet
+ * @function removeMoonFromPlanet
+ * @param {number} planetIndex - Index of the parent planet
+ * @param {number} moonIndex - Index of the moon to remove
+ * @returns {boolean} Success status of moon removal
+ */
 
 const removeMoonFromPlanet = (planetIndex, moonIndex) => {
     if (planetIndex < 0 || planetIndex >= planets.length) return false;
@@ -1822,6 +2276,13 @@ const removeMoonFromPlanet = (planetIndex, moonIndex) => {
     return true;
 };
 
+/**
+ * Updates all moon positions relative to their parent planets
+ * @function updateMoons
+ * @param {number} deltaTime - Time elapsed since last frame in seconds
+ * @description Calculates orbital positions for all moons around their planets
+ * @returns {void}
+ */
 
 const updateMoons = (deltaTime) => {
     planets.forEach(planet => {
@@ -1847,6 +2308,12 @@ const updateMoons = (deltaTime) => {
     });
 };
 
+/**
+ * Sets up UI controls for moon management
+ * @function setupMoonControls
+ * @description Configures dropdowns and buttons for moon creation/removal
+ * @returns {void}
+ */
 
 const setupMoonControls = () => {
     const parentPlanetSelect = document.getElementById('parent-planet-select');
@@ -1939,6 +2406,18 @@ const setupMoonControls = () => {
     updateMoonRemovalDropdown();
 };
 
+/**
+ * Creates a comet with light effects
+ * @function createComet
+ * @param {string} name - Name of the comet
+ * @param {number} orbitRadius - Orbital distance from center
+ * @param {number} orbitSpeed - Speed of orbital motion
+ * @param {number} lightColor - Color of the comet's light (default: 0x00ffff)
+ * @param {number} lightIntensity - Intensity of the light (default: 1)
+ * @param {number} lightDistance - Light influence distance (default: 20)
+ * @returns {THREE.Group} Comet group containing mesh and light
+ */
+
 const createComet = (name, orbitRadius, orbitSpeed, lightColor = 0x00ffff, lightIntensity = 1, lightDistance = 20) => {
 
     const cometGeometry = new THREE.SphereGeometry(0.1, 8, 8);
@@ -1984,6 +2463,18 @@ const createComet = (name, orbitRadius, orbitSpeed, lightColor = 0x00ffff, light
     return cometGroup;
 };
 
+/**
+ * Adds a new comet to the system
+ * @function addComet
+ * @param {string} cometName - Name of the comet
+ * @param {number} orbitRadius - Orbital radius
+ * @param {number} orbitSpeed - Orbital speed
+ * @param {string} colorHex - Hex color string (default: '#00ffff')
+ * @param {number} intensity - Light intensity (default: 1)
+ * @param {number} distance - Light distance (default: 20)
+ * @returns {boolean} Success status of comet creation
+ */
+
 const addComet = (cometName, orbitRadius, orbitSpeed, colorHex = '#00ffff', intensity = 1, distance = 20) => {
     if (comets.length >= maxComets) {
         alert(`Máximo de ${maxComets} cometas atingido`);
@@ -2010,6 +2501,13 @@ const addComet = (cometName, orbitRadius, orbitSpeed, colorHex = '#00ffff', inte
     return true;
 };
 
+/**
+ * Removes a comet from the system
+ * @function removeComet
+ * @param {number} cometIndex - Index of the comet to remove
+ * @returns {boolean} Success status of comet removal
+ */
+
 const removeComet = (cometIndex) => {
     if (cometIndex < 0 || cometIndex >= comets.length) {
         return false;
@@ -2025,6 +2523,13 @@ const removeComet = (cometIndex) => {
     return true;
 };
 
+/**
+ * Updates comet positions and lighting effects
+ * @function updateComets
+ * @param {number} deltaTime - Time elapsed since last frame in seconds
+ * @description Updates orbital motion and pulsing light effects for comets
+ * @returns {void}
+ */
 
 const updateComets = (deltaTime) => {
     comets.forEach(comet => {
@@ -2042,6 +2547,13 @@ const updateComets = (deltaTime) => {
     });
 };
 
+/**
+ * Calculates the next available orbit radius for new comets
+ * @function calculateNextCometOrbitRadius
+ * @description Determines appropriate orbital distance for new comet placement
+ * @returns {number} Next suitable comet orbit radius
+ */
+
 const calculateNextCometOrbitRadius = () => {
 
     const minCometRadius = 20;
@@ -2053,6 +2565,13 @@ const calculateNextCometOrbitRadius = () => {
     const maxCurrentRadius = Math.max(...comets.map(c => c.userData.orbitRadius));
     return maxCurrentRadius + 8;
 };
+
+/**
+ * Generates random data for comet creation
+ * @function generateRandomCometData
+ * @param {string|null} customName - Optional custom name for the comet
+ * @returns {Object} Generated comet configuration data
+ */
 
 const generateRandomCometData = (customName = null) => {
     const cometNames = [
@@ -2085,6 +2604,13 @@ const generateRandomCometData = (customName = null) => {
         distance: 15 + Math.random() * 15
     };
 };
+
+/**
+ * Sets up comet management controls and event listeners
+ * @function setupCometControls
+ * @description Configures comet creation controls, sliders, and buttons
+ * @returns {void}
+ */
 
 const setupCometControls = () => {
     const cometOrbitRadiusSlider = document.getElementById('comet-orbit-radius');
@@ -2151,6 +2677,12 @@ const setupCometControls = () => {
     }
 };
 
+/**
+ * Updates comet counter display in the UI
+ * @function updateCometCounter
+ * @description Updates the displayed count of active comets
+ * @returns {void}
+ */
 
 const updateCometCounter = () => {
     const cometCountElement = document.getElementById('comet-count');
@@ -2159,7 +2691,14 @@ const updateCometCounter = () => {
     }
 };
 
-// The render loop.
+/**
+ * Main render loop for the application
+ * @function render
+ * @param {number} currentTime - Current timestamp from requestAnimationFrame (default: 0)
+ * @description Handles all updates and renders the scene continuously
+ * @returns {void}
+ */
+
 const render = (currentTime = 0) => {
     const deltaTime = (currentTime - lastTime) / 1000;
     lastTime = currentTime;
