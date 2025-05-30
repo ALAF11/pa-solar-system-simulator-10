@@ -1495,21 +1495,6 @@ const updateModelDropdown = () => {
     });
 };
 
-const generateRandomStaticPosition = () => {
-
-    const minDistance = 18;
-    const maxDistance = 35;
-
-    const angle = Math.random() * Math.PI * 2;
-    const distance = minDistance + Math.random() * (maxDistance - minDistance);
-
-    return {
-        x: Math.cos(angle) * distance,
-        y: (Math.random() - 0.5) * 8,
-        z: Math.sin(angle) * distance
-    };
-};
-
 /**
  * Sets up the object property editor interface
  * @function setupObjectEditor
@@ -2009,14 +1994,19 @@ const removePlanetLabel = (planet) => {
     }
 };
 
-const clearAllLabels = () => {
-    planetLabels.forEach(labelData => {
-        if (labelData.element && labelData.element.parentNode) {
-            labelData.element.parentNode.removeChild(labelData.element);
-        }
-    });
-    planetLabels = [];
-};
+
+/**
+ * Default solar system planet configuration data,
+ * @constant {PlanetData[]},
+ * @typedef {Object} PlanetData,
+ * @property {string} name - Planet name,
+ * @property {number} radius - Physical radius of the planet,
+ * @property {number} semiMajorAxis - Semi-major axis of elliptical orbit,
+ * @property {number} eccentricity - Orbital eccentricity (0-1),
+ * @property {number} color - Hex color value,
+ * @property {number} speed - Orbital speed multiplier,
+ * @property {number} inclination - Orbital inclination in degrees
+ */
 
 const planetData = [
     {
